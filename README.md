@@ -5,9 +5,13 @@
 
 ## Quick Start
 
+--python3 needed for this installer
+
 ### Windows
 ```
+Right CLick start_windows.bat-Properties-Security-check unblock
 Double-click: start_windows.bat
+
 ```
 
 ### Linux / Mac
