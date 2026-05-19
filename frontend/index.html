@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DFIR Investigation Suite</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+  --text:#c9d1d9;--text2:#8b949e;--blue:#58a6ff;--blue2:#1f6feb;
+  --green:#3fb950;--red:#f85149;--orange:#d29922;--purple:#a371f7;
+  --cyan:#39d353;--sidebar:220px;--topbar:56px;
+}
+.light{
+  --bg:#f6f8fa;--bg2:#ffffff;--bg3:#f0f4f8;--border:#d0d7de;
+  --text:#1f2328;--text2:#656d76;--blue:#0969da;--blue2:#0550ae;
+  --green:#1a7f37;--red:#d1242f;--orange:#9a6700;--purple:#8250df;
+  --sidebar:220px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden}
+#root{display:flex;height:100vh}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-logo{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-weight:700;font-size:15px;color:var(--text)}
+.logo-sub{font-size:10px;color:var(--text2)}
+.nav-section{padding:8px 0}
+.nav-label{padding:6px 16px 4px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;color:var(--text2);border-left:3px solid transparent;transition:all .15s;font-size:13px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(88,166,255,.1);color:var(--blue);border-left-color:var(--blue)}
+.nav-icon{font-size:16px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:var(--topbar);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-weight:600;font-size:16px;flex:1}
+.topbar-badge{background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:6px;font-size:12px;color:var(--text2)}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn-primary{background:var(--blue2);border-color:var(--blue2);color:#fff}
+.btn-primary:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-danger{background:rgba(248,81,73,.15);border-color:var(--red);color:var(--red)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.content{flex:1;overflow-y:auto;padding:20px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.card-title{font-weight:600;font-size:14px;margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:8px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s}
+.stat-card:hover{border-color:var(--blue)}
+.stat-num{font-size:28px;font-weight:700;color:var(--blue)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:4px}
+.stat-card.red .stat-num{color:var(--red)}
+.stat-card.green .stat-num{color:var(--green)}
+.stat-card.orange .stat-num{color:var(--orange)}
+.stat-card.purple .stat-num{color:var(--purple)}
+
+/* Tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 12px;font-size:12px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);background:var(--bg3)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:hover td{background:var(--bg3)}
+tr:last-child td{border-bottom:none}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-critical{background:rgba(248,81,73,.2);color:var(--red)}
+.badge-high{background:rgba(210,153,34,.2);color:var(--orange)}
+.badge-medium{background:rgba(88,166,255,.2);color:var(--blue)}
+.badge-low{background:rgba(63,185,80,.2);color:var(--green)}
+.badge-info{background:var(--bg3);color:var(--text2)}
+.badge-open{background:rgba(63,185,80,.2);color:var(--green)}
+.badge-active{background:rgba(88,166,255,.2);color:var(--blue)}
+.badge-closed{background:var(--bg3);color:var(--text2)}
+.badge-archived{background:var(--bg3);color:var(--text2)}
+
+/* Forms */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.form-input{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px}
+.form-input:focus{outline:none;border-color:var(--blue)}
+.form-select{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px}
+textarea.form-input{resize:vertical;min-height:80px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:480px;max-width:600px;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--border);padding-top:14px}
+
+/* Timeline */
+.timeline-item{display:flex;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
+.timeline-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.timeline-dot.critical{background:var(--red)}
+.timeline-dot.high{background:var(--orange)}
+.timeline-dot.medium{background:var(--blue)}
+.timeline-dot.low{background:var(--green)}
+.timeline-dot.info{background:var(--text2)}
+.timeline-time{font-size:11px;color:var(--text2);white-space:nowrap;min-width:130px}
+.timeline-desc{font-size:13px;color:var(--text);flex:1}
+.timeline-source{font-size:11px;color:var(--purple)}
+
+/* AI Chat */
+.ai-messages{height:350px;overflow-y:auto;background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px}
+.ai-msg{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;max-width:90%}
+.ai-msg.user{background:var(--blue2);color:#fff;align-self:flex-end}
+.ai-msg.ai{background:var(--bg2);border:1px solid var(--border);align-self:flex-start}
+.ai-input-row{display:flex;gap:8px}
+.ai-input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px}
+.ai-input:focus{outline:none;border-color:var(--blue)}
+
+/* Login */
+.login-page{display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg)}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px;width:380px}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .icon{font-size:40px;margin-bottom:8px}
+.login-logo h1{font-size:20px;font-weight:700;color:var(--text)}
+.login-logo p{font-size:12px;color:var(--text2);margin-top:4px}
+.login-btn{width:100%;padding:10px;background:var(--blue2);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.login-btn:hover{background:var(--blue)}
+.error-msg{color:var(--red);font-size:12px;margin-top:8px;text-align:center}
+
+/* Alerts */
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.alert-info{background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.3);color:var(--blue)}
+.alert-warn{background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3);color:var(--orange)}
+.alert-danger{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red)}
+.alert-success{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);color:var(--green)}
+
+/* Misc */
+.empty{text-align:center;padding:40px;color:var(--text2)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.tag{display:inline-block;background:rgba(88,166,255,.15);color:var(--blue);padding:2px 8px;border-radius:12px;font-size:11px;margin:2px}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.loading{text-align:center;padding:30px;color:var(--text2)}
+.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.flex{display:flex;align-items:center;gap:8px}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.mt{margin-top:12px}
+.search-bar{padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;width:250px}
+.search-bar:focus{outline:none;border-color:var(--blue)}
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
+.text-red{color:var(--red)}.text-green{color:var(--green)}.text-blue{color:var(--blue)}.text-orange{color:var(--orange)}.text-sm{font-size:12px}.text-muted{color:var(--text2)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect, useRef, useCallback } = React;
+const API = 'http://localhost:8000';
+
+// ── API Helper ──────────────────────────────────────────────────────
+function getToken(){ return localStorage.getItem('dfir_token'); }
+async function api(path, opts={}){
+  const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
+  const tok = getToken();
+  if(tok) headers['Authorization'] = 'Bearer '+tok;
+  const res = await fetch(API+path,{...opts, headers});
+  if(res.status===401){ localStorage.removeItem('dfir_token'); window.location.reload(); }
+  if(!res.ok){ const e=await res.json().catch(()=>({detail:'Error'})); throw new Error(e.detail||'Error'); }
+  if(res.status===204) return null;
+  return res.json();
+}
+
+// ── Severity Badge ──────────────────────────────────────────────────
+function SBadge({s}){
+  const l = (s||'info').toLowerCase();
+  return React.createElement('span',{className:`badge badge-${l}`},l.toUpperCase());
+}
+
+// ── Status Badge ────────────────────────────────────────────────────
+function StatusBadge({s}){
+  return React.createElement('span',{className:`badge badge-${s||'open'}`},(s||'open').toUpperCase());
+}
+
+// ── Loading Spinner ─────────────────────────────────────────────────
+function Loader(){ return React.createElement('div',{className:'loading'}, React.createElement('span',{className:'spin'},'⟳'), ' Loading...'); }
+
+// ── Login Page ──────────────────────────────────────────────────────
+function LoginPage({onLogin}){
+  const [user,setUser]=useState('admin');
+  const [pass,setPass]=useState('');
+  const [err,setErr]=useState('');
+  const [loading,setLoading]=useState(false);
+
+  async function submit(e){
+    e.preventDefault(); setErr(''); setLoading(true);
+    try{
+      const r = await api('/api/auth/login',{method:'POST',body:JSON.stringify({username:user,password:pass})});
+      localStorage.setItem('dfir_token',r.access_token);
+      localStorage.setItem('dfir_user',JSON.stringify(r.user));
+      onLogin(r.user);
+    }catch(e){ setErr(e.message); }
+    setLoading(false);
+  }
+  return React.createElement('div',{className:'login-page'},
+    React.createElement('div',{className:'login-card'},
+      React.createElement('div',{className:'login-logo'},
+        React.createElement('div',{className:'icon'},'🔍'),
+        React.createElement('h1',null,'DFIR Investigation Suite'),
+        React.createElement('p',null,'AI-Powered Forensic Platform')
+      ),
+      React.createElement('form',{onSubmit:submit},
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Username'),
+          React.createElement('input',{className:'form-input',value:user,onChange:e=>setUser(e.target.value),required:true})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Password'),
+          React.createElement('input',{className:'form-input',type:'password',value:pass,onChange:e=>setPass(e.target.value),required:true,placeholder:'Default: Admin@1234'})
+        ),
+        err && React.createElement('div',{className:'error-msg'},'⚠ '+err),
+        React.createElement('button',{className:'login-btn',type:'submit',disabled:loading}, loading?'Signing in...':'🔐 Sign In')
+      )
+    )
+  );
+}
+
+// ── Dashboard ───────────────────────────────────────────────────────
+function Dashboard({setPage,setCaseId}){
+  const [stats,setStats]=useState(null);
+  useEffect(()=>{ api('/api/dashboard/stats').then(setStats).catch(()=>{}); },[]);
+  if(!stats) return React.createElement(Loader);
+  const s=stats;
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h2',{style:{fontSize:20,fontWeight:700}},'Dashboard'),
+        React.createElement('p',{className:'text-muted text-sm'},'Investigation overview')
+      ),
+      React.createElement('button',{className:'btn btn-primary',onClick:()=>setPage('cases')},'➕ New Case')
+    ),
+    React.createElement('div',{className:'stat-grid'},
+      React.createElement('div',{className:'stat-card',onClick:()=>setPage('cases')},
+        React.createElement('div',{className:'stat-num'},s.total_cases),
+        React.createElement('div',{className:'stat-label'},'📁 Total Cases')
+      ),
+      React.createElement('div',{className:'stat-card green',onClick:()=>setPage('cases')},
+        React.createElement('div',{className:'stat-num'},s.open_cases),
+        React.createElement('div',{className:'stat-label'},'🟢 Open Cases')
+      ),
+      React.createElement('div',{className:'stat-card'},
+        React.createElement('div',{className:'stat-num'},s.total_evidence),
+        React.createElement('div',{className:'stat-label'},'💾 Evidence Items')
+      ),
+      React.createElement('div',{className:'stat-card red',onClick:()=>setPage('iocs')},
+        React.createElement('div',{className:'stat-num'},s.critical_iocs),
+        React.createElement('div',{className:'stat-label'},'🚨 Critical IOCs')
+      ),
+      React.createElement('div',{className:'stat-card orange'},
+        React.createElement('div',{className:'stat-num'},s.suspicious_artifacts),
+        React.createElement('div',{className:'stat-label'},'⚠ Suspicious Artifacts')
+      ),
+      React.createElement('div',{className:'stat-card purple'},
+        React.createElement('div',{className:'stat-num'},s.scan_results),
+        React.createElement('div',{className:'stat-label'},'🔍 Scan Hits')
+      )
+    ),
+    React.createElement('div',{className:'grid2'},
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'📋 Recent Cases'),
+        s.recent_cases.length===0
+          ? React.createElement('div',{className:'empty'},'No cases yet')
+          : React.createElement('div',null, s.recent_cases.map(c=>
+              React.createElement('div',{key:c.id,className:'flex-between',style:{padding:'8px 0',borderBottom:'1px solid var(--border)',cursor:'pointer'},
+                onClick:()=>{setCaseId(c.id);setPage('casedetail')}},
+                React.createElement('div',null,
+                  React.createElement('div',{style:{fontWeight:600,fontSize:13}},c.case_number),
+                  React.createElement('div',{className:'text-muted text-sm'},c.title.substring(0,40))
+                ),
+                React.createElement(StatusBadge,{s:c.status})
+              )
+            ))
+      ),
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'📊 Severity Breakdown'),
+        Object.entries(s.severity_breakdown).length===0
+          ? React.createElement('div',{className:'empty'},'No data yet')
+          : React.createElement('div',null,
+              Object.entries(s.severity_breakdown).map(([k,v])=>
+                React.createElement('div',{key:k,style:{marginBottom:10}},
+                  React.createElement('div',{className:'flex-between text-sm',style:{marginBottom:4}},
+                    React.createElement('span',null,k.toUpperCase()),
+                    React.createElement('span',{className:`text-${k==='critical'?'red':k==='high'?'orange':'blue'}`},v)
+                  ),
+                  React.createElement('div',{className:'progress-bar'},
+                    React.createElement('div',{className:'progress-fill',style:{width:`${Math.min(100,(v/s.total_cases)*100)}%`}})
+                  )
+                )
+              )
+            )
+      )
+    )
+  );
+}
+
+// ── Cases Page ──────────────────────────────────────────────────────
+function CasesPage({setCaseId,setPage}){
+  const [cases,setCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState('');
+  const [showModal,setShowModal]=useState(false);
+  const [form,setForm]=useState({title:'',description:'',priority:'medium'});
+  const [msg,setMsg]=useState('');
+
+  useEffect(()=>{ load(); },[]);
+  async function load(){
+    setLoading(true);
+    try{ setCases(await api('/api/cases/')); }catch(e){}
+    setLoading(false);
+  }
+  async function createCase(){
+    try{
+      await api('/api/cases/',{method:'POST',body:JSON.stringify(form)});
+      setShowModal(false);setForm({title:'',description:'',priority:'medium'});
+      setMsg('Case created!'); load();
+    }catch(e){ setMsg(e.message); }
+  }
+  const filtered = cases.filter(c=>(c.title+c.case_number).toLowerCase().includes(search.toLowerCase()));
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('h2',{style:{fontSize:20,fontWeight:700}},'📁 Cases'),
+      React.createElement('div',{className:'flex'},
+        React.createElement('input',{className:'search-bar',placeholder:'Search cases...',value:search,onChange:e=>setSearch(e.target.value)}),
+        React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowModal(true)},'➕ New Case')
+      )
+    ),
+    msg && React.createElement('div',{className:'alert alert-success'},'✅ '+msg),
+    loading ? React.createElement(Loader) :
+    React.createElement('div',{className:'card',style:{padding:0}},
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,
+            React.createElement('tr',null,
+              ['Case #','Title','Status','Priority','Evidence','IOCs','Created'].map(h=>React.createElement('th',{key:h},h))
+            )
+          ),
+          React.createElement('tbody',null,
+            filtered.length===0
+              ? React.createElement('tr',null,React.createElement('td',{colSpan:7,style:{textAlign:'center',padding:30,color:'var(--text2)'}},
+                  React.createElement('div',null,'📂'),React.createElement('div',null,'No cases found')))
+              : filtered.map(c=>
+                React.createElement('tr',{key:c.id,style:{cursor:'pointer'},onClick:()=>{setCaseId(c.id);setPage('casedetail')}},
+                  React.createElement('td',null,React.createElement('span',{style:{color:'var(--blue)',fontWeight:600}},c.case_number)),
+                  React.createElement('td',null,c.title.substring(0,45)),
+                  React.createElement('td',null,React.createElement(StatusBadge,{s:c.status})),
+                  React.createElement('td',null,React.createElement(SBadge,{s:c.priority})),
+                  React.createElement('td',null,c.evidence_count||0),
+                  React.createElement('td',null,c.ioc_count||0),
+                  React.createElement('td',null,React.createElement('span',{className:'text-muted text-sm'},c.created_at?c.created_at.substring(0,10):''))
+                )
+              )
+          )
+        )
+      )
+    ),
+    showModal && React.createElement('div',{className:'modal-overlay'},
+      React.createElement('div',{className:'modal'},
+        React.createElement('div',{className:'modal-title'},'📁 Create New Case'),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Title *'),
+          React.createElement('input',{className:'form-input',value:form.title,onChange:e=>setForm({...form,title:e.target.value}),placeholder:'e.g. Ransomware Incident — Finance Server'})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Description'),
+          React.createElement('textarea',{className:'form-input',value:form.description,onChange:e=>setForm({...form,description:e.target.value}),placeholder:'Initial incident details...'})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Priority'),
+          React.createElement('select',{className:'form-select',value:form.priority,onChange:e=>setForm({...form,priority:e.target.value})},
+            ['critical','high','medium','low','info'].map(p=>React.createElement('option',{key:p,value:p},p.toUpperCase()))
+          )
+        ),
+        msg && React.createElement('div',{className:'alert alert-danger'},msg),
+        React.createElement('div',{className:'modal-footer'},
+          React.createElement('button',{className:'btn',onClick:()=>setShowModal(false)},'Cancel'),
+          React.createElement('button',{className:'btn btn-primary',onClick:createCase},'Create Case')
+        )
+      )
+    )
+  );
+}
+
+// ── Case Detail ─────────────────────────────────────────────────────
+function CaseDetail({caseId,setPage}){
+  const [cas,setCas]=useState(null);
+  const [tab,setTab]=useState('overview');
+  const [summary,setSummary]=useState(null);
+  const [artifacts,setArtifacts]=useState([]);
+  const [iocs,setIocs]=useState([]);
+  const [timeline,setTimeline]=useState([]);
+  const [scans,setScans]=useState([]);
+  const [notes,setNotes]=useState([]);
+  const [noteText,setNoteText]=useState('');
+  const [noteTitle,setNoteTitle]=useState('');
+  const [newIoc,setNewIoc]=useState({ioc_type:'ip',value:'',severity:'medium'});
+  const [msg,setMsg]=useState('');
+  const [aiLoading,setAiLoading]=useState(false);
+  const [aiSummary,setAiSummary]=useState('');
+
+  useEffect(()=>{
+    if(!caseId) return;
+    api(`/api/cases/${caseId}`).then(setCas);
+    api(`/api/cases/${caseId}/summary`).then(setSummary);
+    api(`/api/artifacts/case/${caseId}`).then(setArtifacts);
+    api(`/api/iocs/case/${caseId}`).then(setIocs);
+    api(`/api/timeline/case/${caseId}`).then(setTimeline);
+    api(`/api/scanner/results/case/${caseId}`).then(setScans);
+    api(`/api/cases/${caseId}/notes`).then(setNotes);
+  },[caseId]);
+
+  async function addNote(){
+    if(!noteText.trim()) return;
+    try{
+      const n = await api(`/api/cases/${caseId}/notes`,{method:'POST',body:JSON.stringify({case_id:caseId,title:noteTitle,content:noteText})});
+      setNotes([n,...notes]); setNoteText(''); setNoteTitle(''); setMsg('Note added');
+    }catch(e){ setMsg(e.message); }
+  }
+  async function addIoc(){
+    if(!newIoc.value.trim()) return;
+    try{
+      const i = await api('/api/iocs/',{method:'POST',body:JSON.stringify({...newIoc,case_id:caseId,confidence:0.8})});
+      setIocs([i,...iocs]); setNewIoc({ioc_type:'ip',value:'',severity:'medium'}); setMsg('IOC added');
+    }catch(e){ setMsg(e.message); }
+  }
+  async function collectArtifacts(){
+    const ev = await api(`/api/evidence/case/${caseId}`);
+    if(!ev||ev.length===0){ setMsg('Upload evidence first'); return; }
+    await api(`/api/artifacts/collect/${ev[0].id}`,{method:'POST'});
+    setMsg('Artifact collection started...'); setTimeout(()=>api(`/api/artifacts/case/${caseId}`).then(setArtifacts),3000);
+  }
+  async function runScan(){
+    await api(`/api/scanner/sigma/${caseId}`,{method:'POST'});
+    await api(`/api/scanner/ioc/${caseId}`,{method:'POST'});
+    setMsg('Scan started...'); setTimeout(()=>api(`/api/scanner/results/case/${caseId}`).then(setScans),3000);
+  }
+  async function buildTimeline(){
+    await api(`/api/timeline/case/${caseId}/build`,{method:'POST'});
+    setMsg('Timeline built!'); api(`/api/timeline/case/${caseId}`).then(setTimeline);
+  }
+  async function generateAiSummary(){
+    setAiLoading(true); setAiSummary('');
+    try{
+      const r = await api(`/api/ai/summarize/${caseId}`,{method:'POST'});
+      setAiSummary(r.summary);
+    }catch(e){ setAiSummary('Ollama not available. Start Ollama and run a model first.'); }
+    setAiLoading(false);
+  }
+  async function generateReport(){
+    try{
+      await api('/api/reports/generate',{method:'POST',body:JSON.stringify({case_id:caseId,title:`Report - ${cas?.case_number}`,report_type:'full',format:'pdf',includes_ai_summary:false})});
+      setMsg('PDF report generated in /reports folder!');
+    }catch(e){ setMsg(e.message); }
+  }
+
+  if(!cas) return React.createElement(Loader);
+  const tabs = ['overview','artifacts','timeline','iocs','scans','notes','ai','report'];
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex',style:{marginBottom:16}},
+      React.createElement('button',{className:'btn btn-sm',onClick:()=>setPage('cases')},'← Cases'),
+      React.createElement('span',{style:{marginLeft:8,color:'var(--text2)'}},'/ '+cas.case_number)
+    ),
+    React.createElement('div',{className:'flex-between',style:{marginBottom:16}},
+      React.createElement('div',null,
+        React.createElement('h2',{style:{fontSize:18,fontWeight:700}},cas.title),
+        React.createElement('div',{className:'flex',style:{marginTop:4}},
+          React.createElement(StatusBadge,{s:cas.status}),
+          React.createElement(SBadge,{s:cas.priority}),
+          React.createElement('span',{className:'text-muted text-sm'},cas.case_number)
+        )
+      ),
+      React.createElement('div',{className:'flex'},
+        React.createElement('button',{className:'btn btn-sm',onClick:collectArtifacts},'🔬 Collect'),
+        React.createElement('button',{className:'btn btn-sm',onClick:runScan},'🔍 Scan'),
+        React.createElement('button',{className:'btn btn-sm',onClick:buildTimeline},'📅 Timeline'),
+        React.createElement('button',{className:'btn btn-primary btn-sm',onClick:generateReport},'📄 PDF Report')
+      )
+    ),
+    msg && React.createElement('div',{className:'alert alert-info',style:{marginBottom:12}},msg),
+    React.createElement('div',{className:'flex',style:{borderBottom:'1px solid var(--border)',marginBottom:16,gap:0}},
+      tabs.map(t=>React.createElement('button',{key:t,onClick:()=>setTab(t),
+        style:{padding:'8px 14px',background:'none',border:'none',cursor:'pointer',borderBottom:tab===t?'2px solid var(--blue)':'2px solid transparent',
+          color:tab===t?'var(--blue)':'var(--text2)',fontWeight:tab===t?600:400,fontSize:13}},
+        {overview:'Overview',artifacts:`Artifacts (${artifacts.length})`,timeline:`Timeline (${timeline.length})`,
+         iocs:`IOCs (${iocs.length})`,scans:`Scans (${scans.length})`,notes:'Notes',ai:'🤖 AI',report:'Report'}[t]
+      ))
+    ),
+
+    tab==='overview' && summary && React.createElement('div',null,
+      React.createElement('div',{className:'stat-grid'},
+        React.createElement('div',{className:'stat-card'},React.createElement('div',{className:'stat-num'},summary.total_artifacts),React.createElement('div',{className:'stat-label'},'Artifacts')),
+        React.createElement('div',{className:'stat-card red'},React.createElement('div',{className:'stat-num'},summary.suspicious_artifacts),React.createElement('div',{className:'stat-label'},'Suspicious')),
+        React.createElement('div',{className:'stat-card orange'},React.createElement('div',{className:'stat-num'},summary.total_iocs),React.createElement('div',{className:'stat-label'},'IOCs')),
+        React.createElement('div',{className:'stat-card purple'},React.createElement('div',{className:'stat-num'},summary.scan_hits),React.createElement('div',{className:'stat-label'},'Scan Hits'))
+      ),
+      React.createElement('div',{className:'grid2'},
+        React.createElement('div',{className:'card'},
+          React.createElement('div',{className:'card-title'},'🎯 MITRE ATT&CK'),
+          (summary.mitre_techniques||[]).length===0 ? React.createElement('p',{className:'text-muted text-sm'},'No techniques mapped yet') :
+          React.createElement('div',null,(summary.mitre_techniques||[]).map(t=>React.createElement('span',{key:t,className:'tag'},t)))
+        ),
+        React.createElement('div',{className:'card'},
+          React.createElement('div',{className:'card-title'},'💻 Affected Systems'),
+          (summary.affected_systems||[]).length===0 ? React.createElement('p',{className:'text-muted text-sm'},'None specified') :
+          React.createElement('div',null,(summary.affected_systems||[]).map(s=>React.createElement('span',{key:s,className:'tag'},s)))
+        )
+      ),
+      cas.description && React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'📝 Description'),
+        React.createElement('p',{style:{fontSize:13,lineHeight:1.6}},cas.description)
+      )
+    ),
+
+    tab==='artifacts' && React.createElement('div',null,
+      artifacts.length===0
+        ? React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'🔬'),React.createElement('div',null,'No artifacts yet. Upload evidence and click Collect.'))
+        : React.createElement('div',{className:'card',style:{padding:0}},
+            React.createElement('div',{className:'table-wrap'},
+              React.createElement('table',null,
+                React.createElement('thead',null,React.createElement('tr',null,['Type','Name','Severity','Suspicious','MITRE','Timestamp'].map(h=>React.createElement('th',{key:h},h)))),
+                React.createElement('tbody',null,
+                  artifacts.map(a=>React.createElement('tr',{key:a.id},
+                    React.createElement('td',null,React.createElement('span',{className:'tag'},a.artifact_type)),
+                    React.createElement('td',null,React.createElement('span',{title:a.name},a.name.substring(0,50))),
+                    React.createElement('td',null,React.createElement(SBadge,{s:a.severity})),
+                    React.createElement('td',null,a.is_suspicious?React.createElement('span',{className:'text-red'},'⚠ Yes'):React.createElement('span',{className:'text-muted'},'No')),
+                    React.createElement('td',null,React.createElement('span',{style:{fontSize:11,color:'var(--purple)'}},a.mitre_technique||'')),
+                    React.createElement('td',null,React.createElement('span',{className:'text-sm text-muted'},a.timestamp?a.timestamp.substring(0,19):''))
+                  ))
+                )
+              )
+            )
+          )
+    ),
+
+    tab==='timeline' && React.createElement('div',null,
+      timeline.length===0
+        ? React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'📅'),React.createElement('div',null,'No timeline events. Click Timeline button.'))
+        : React.createElement('div',{className:'card'},
+            React.createElement('div',{className:'card-title'},'📅 Investigation Timeline'),
+            timeline.map(e=>React.createElement('div',{key:e.id,className:'timeline-item'},
+              React.createElement('div',{className:`timeline-dot ${e.severity||'info'}`}),
+              React.createElement('div',{className:'timeline-time'},e.timestamp?e.timestamp.substring(0,19):''),
+              React.createElement('div',null,
+                React.createElement('div',{className:'timeline-desc'},e.description),
+                React.createElement('span',{className:'timeline-source'},e.source,' ',e.mitre_technique?'['+e.mitre_technique+']':'')
+              ),
+              React.createElement(SBadge,{s:e.severity})
+            ))
+          )
+    ),
+
+    tab==='iocs' && React.createElement('div',null,
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'➕ Add IOC'),
+        React.createElement('div',{className:'flex',style:{gap:8}},
+          React.createElement('select',{className:'form-select',style:{width:100},value:newIoc.ioc_type,onChange:e=>setNewIoc({...newIoc,ioc_type:e.target.value})},
+            ['ip','domain','hash','url','email','filename'].map(t=>React.createElement('option',{key:t,value:t},t))
+          ),
+          React.createElement('input',{className:'form-input',placeholder:'IOC value...',value:newIoc.value,onChange:e=>setNewIoc({...newIoc,value:e.target.value}),style:{flex:1}}),
+          React.createElement('select',{className:'form-select',style:{width:110},value:newIoc.severity,onChange:e=>setNewIoc({...newIoc,severity:e.target.value})},
+            ['critical','high','medium','low'].map(s=>React.createElement('option',{key:s,value:s},s))
+          ),
+          React.createElement('button',{className:'btn btn-primary',onClick:addIoc},'Add')
+        )
+      ),
+      iocs.length===0
+        ? React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'🎯'),React.createElement('div',null,'No IOCs yet'))
+        : React.createElement('div',{className:'card',style:{padding:0}},
+            React.createElement('div',{className:'table-wrap'},
+              React.createElement('table',null,
+                React.createElement('thead',null,React.createElement('tr',null,['Type','Value','Severity','Confidence','Source'].map(h=>React.createElement('th',{key:h},h)))),
+                React.createElement('tbody',null,
+                  iocs.map(i=>React.createElement('tr',{key:i.id},
+                    React.createElement('td',null,React.createElement('span',{className:'tag'},i.ioc_type)),
+                    React.createElement('td',null,React.createElement('code',{style:{fontSize:12}},i.value)),
+                    React.createElement('td',null,React.createElement(SBadge,{s:i.severity})),
+                    React.createElement('td',null,Math.round((i.confidence||0)*100)+'%'),
+                    React.createElement('td',null,React.createElement('span',{className:'text-muted text-sm'},i.source||'manual'))
+                  ))
+                )
+              )
+            )
+          )
+    ),
+
+    tab==='scans' && React.createElement('div',null,
+      scans.length===0
+        ? React.createElement('div',{className:'empty'},React.createElement('div',{className:'empty-icon'},'🔍'),React.createElement('div',null,'No scan results. Click Scan button.'))
+        : React.createElement('div',{className:'card',style:{padding:0}},
+            React.createElement('div',{className:'table-wrap'},
+              React.createElement('table',null,
+                React.createElement('thead',null,React.createElement('tr',null,['Scanner','Rule','Severity','File','MITRE','Time'].map(h=>React.createElement('th',{key:h},h)))),
+                React.createElement('tbody',null,
+                  scans.map(s=>React.createElement('tr',{key:s.id},
+                    React.createElement('td',null,React.createElement('span',{className:'tag'},s.scanner_type)),
+                    React.createElement('td',null,React.createElement('span',{style:{fontSize:12}},s.rule_name)),
+                    React.createElement('td',null,React.createElement(SBadge,{s:s.severity})),
+                    React.createElement('td',null,React.createElement('span',{className:'text-sm text-muted'},(s.file_path||'').split(/[/\\]/).pop())),
+                    React.createElement('td',null,React.createElement('span',{style:{fontSize:11,color:'var(--purple)'}},s.mitre_technique||'')),
+                    React.createElement('td',null,React.createElement('span',{className:'text-sm text-muted'},s.scan_timestamp?s.scan_timestamp.substring(0,19):''))
+                  ))
+                )
+              )
+            )
+          )
+    ),
+
+    tab==='notes' && React.createElement('div',null,
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'✏️ Add Note'),
+        React.createElement('input',{className:'form-input',placeholder:'Note title (optional)...',value:noteTitle,onChange:e=>setNoteTitle(e.target.value),style:{marginBottom:8}}),
+        React.createElement('textarea',{className:'form-input',placeholder:'Write your investigation notes...',value:noteText,onChange:e=>setNoteText(e.target.value),style:{minHeight:100}}),
+        React.createElement('div',{style:{marginTop:8,textAlign:'right'}},
+          React.createElement('button',{className:'btn btn-primary',onClick:addNote},'Save Note')
+        )
+      ),
+      notes.map(n=>React.createElement('div',{key:n.id,className:'card'},
+        React.createElement('div',{className:'flex-between',style:{marginBottom:6}},
+          React.createElement('span',{style:{fontWeight:600}},n.title||'Note'),
+          React.createElement('span',{className:'text-muted text-sm'},n.created_at?n.created_at.substring(0,10):'')
+        ),
+        React.createElement('p',{style:{fontSize:13,lineHeight:1.6,whiteSpace:'pre-wrap'}},n.content)
+      ))
+    ),
+
+    tab==='ai' && React.createElement('div',null,
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'🤖 AI Case Summary'),
+        React.createElement('p',{className:'text-muted text-sm',style:{marginBottom:12}},'Powered by Ollama (local AI — fully offline)'),
+        React.createElement('button',{className:'btn btn-primary',onClick:generateAiSummary,disabled:aiLoading},
+          aiLoading?'⟳ Generating...':'✨ Generate AI Summary'
+        ),
+        aiLoading && React.createElement('div',{className:'loading',style:{marginTop:16}},'🤖 AI is analyzing the case...'),
+        aiSummary && React.createElement('div',{style:{marginTop:16,background:'var(--bg3)',borderRadius:8,padding:16,fontSize:13,lineHeight:1.8,whiteSpace:'pre-wrap'}},aiSummary)
+      )
+    ),
+
+    tab==='report' && React.createElement('div',null,
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{className:'card-title'},'📄 Generate Report'),
+        React.createElement('p',{className:'text-muted',style:{marginBottom:16,fontSize:13}},'Generate a professional PDF or HTML investigation report with all evidence, IOCs, artifacts, and MITRE ATT&CK mapping.'),
+        React.createElement('div',{className:'flex'},
+          React.createElement('button',{className:'btn btn-primary',onClick:generateReport},'📄 Generate PDF Report'),
+          React.createElement('button',{className:'btn',onClick:()=>api('/api/reports/generate',{method:'POST',body:JSON.stringify({case_id:caseId,title:`Report - ${cas?.case_number}`,report_type:'full',format:'html',includes_ai_summary:false})}).then(()=>setMsg('HTML report generated!'))},'🌐 Generate HTML Report')
+        ),
+        msg && React.createElement('div',{className:'alert alert-success',style:{marginTop:12}},msg)
+      )
+    )
+  );
+}
+
+// ── Evidence Page ───────────────────────────────────────────────────
+function EvidencePage(){
+  const [cases,setCases]=useState([]);
+  const [selCase,setSelCase]=useState('');
+  const [evidence,setEvidence]=useState([]);
+  const [uploading,setUploading]=useState(false);
+  const [msg,setMsg]=useState('');
+  const fileRef=useRef();
+
+  useEffect(()=>{ api('/api/cases/').then(setCases); },[]);
+  useEffect(()=>{ if(selCase) api(`/api/evidence/case/${selCase}`).then(setEvidence); },[selCase]);
+
+  async function upload(){
+    if(!selCase||!fileRef.current?.files?.length){setMsg('Select a case and file'); return;}
+    setUploading(true);
+    const fd=new FormData();
+    fd.append('case_id',selCase);
+    fd.append('name',fileRef.current.files[0].name);
+    fd.append('evidence_type','file');
+    fd.append('file',fileRef.current.files[0]);
+    try{
+      const tok=getToken();
+      const res=await fetch(API+'/api/evidence/upload',{method:'POST',headers:{'Authorization':'Bearer '+tok},body:fd});
+      if(!res.ok) throw new Error('Upload failed');
+      setMsg('Evidence uploaded!'); api(`/api/evidence/case/${selCase}`).then(setEvidence);
+    }catch(e){ setMsg(e.message); }
+    setUploading(false);
+  }
+  async function verify(id){
+    const r = await api(`/api/evidence/${id}/verify`);
+    setMsg(r.verified?'✅ Hash verified — integrity intact':'❌ Hash mismatch — file may be tampered!');
+  }
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:20,fontWeight:700,marginBottom:20}},'💾 Evidence Management'),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'card-title'},'📤 Upload Evidence'),
+      React.createElement('div',{className:'flex',style:{gap:12,flexWrap:'wrap'}},
+        React.createElement('select',{className:'form-select',style:{width:220},value:selCase,onChange:e=>setSelCase(e.target.value)},
+          React.createElement('option',{value:''},'-- Select Case --'),
+          cases.map(c=>React.createElement('option',{key:c.id,value:c.id},c.case_number+' — '+c.title.substring(0,30)))
+        ),
+        React.createElement('input',{type:'file',ref:fileRef,style:{color:'var(--text)',flex:1}}),
+        React.createElement('button',{className:'btn btn-primary',onClick:upload,disabled:uploading},uploading?'Uploading...':'Upload')
+      ),
+      msg && React.createElement('div',{className:'alert alert-info',style:{marginTop:10}},msg)
+    ),
+    evidence.length>0 && React.createElement('div',{className:'card',style:{padding:0}},
+      React.createElement('div',{style:{padding:'12px 16px',fontWeight:600,borderBottom:'1px solid var(--border)'}},'Evidence Items'),
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,React.createElement('tr',null,['Name','Type','Size (MB)','SHA256','Acquired By','Integrity'].map(h=>React.createElement('th',{key:h},h)))),
+          React.createElement('tbody',null,
+            evidence.map(e=>React.createElement('tr',{key:e.id},
+              React.createElement('td',null,React.createElement('span',{style:{fontWeight:600}},e.name)),
+              React.createElement('td',null,React.createElement('span',{className:'tag'},e.evidence_type)),
+              React.createElement('td',null,(e.file_size||0).toFixed(2)),
+              React.createElement('td',null,React.createElement('code',{style:{fontSize:10,color:'var(--green)'}},e.sha256_hash?e.sha256_hash.substring(0,16)+'...':'N/A')),
+              React.createElement('td',null,e.acquired_by||''),
+              React.createElement('td',null,React.createElement('button',{className:'btn btn-sm',onClick:()=>verify(e.id)},'🔐 Verify'))
+            ))
+          )
+        )
+      )
+    )
+  );
+}
+
+// ── AI Assistant Page ───────────────────────────────────────────────
+function AIPage(){
+  const [cases,setCases]=useState([]);
+  const [selCase,setSelCase]=useState('');
+  const [model,setModel]=useState('mistral');
+  const [models,setModels]=useState([]);
+  const [messages,setMessages]=useState([{role:'ai',text:'Hello! I\'m DFIR-AI, your forensic investigation assistant. Ask me to analyze artifacts, explain IOCs, map MITRE techniques, or summarize a case. All processing is local via Ollama.'}]);
+  const [input,setInput]=useState('');
+  const [loading,setLoading]=useState(false);
+  const endRef=useRef();
+
+  useEffect(()=>{
+    api('/api/cases/').then(setCases);
+    api('/api/ai/status').then(r=>{ if(r.models) setModels(r.models); });
+  },[]);
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[messages]);
+
+  async function send(){
+    if(!input.trim()||loading) return;
+    const q=input; setInput('');
+    setMessages(m=>[...m,{role:'user',text:q}]);
+    setLoading(true);
+    try{
+      const r=await api('/api/ai/query',{method:'POST',body:JSON.stringify({query:q,case_id:selCase?parseInt(selCase):null,model})});
+      setMessages(m=>[...m,{role:'ai',text:r.response}]);
+    }catch(e){ setMessages(m=>[...m,{role:'ai',text:'⚠ '+e.message+' — Make sure Ollama is running: `ollama serve`'}]); }
+    setLoading(false);
+  }
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:20,fontWeight:700,marginBottom:20}},'🤖 AI Investigation Assistant'),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'flex',style:{gap:8,marginBottom:12}},
+        React.createElement('select',{className:'form-select',style:{width:180},value:selCase,onChange:e=>setSelCase(e.target.value)},
+          React.createElement('option',{value:''},'No case context'),
+          cases.map(c=>React.createElement('option',{key:c.id,value:c.id},c.case_number))
+        ),
+        React.createElement('select',{className:'form-select',style:{width:150},value:model,onChange:e=>setModel(e.target.value)},
+          (models.length?models:['mistral','llama3','llama3.2','phi3','gemma2']).map(m=>React.createElement('option',{key:m,value:m},m))
+        ),
+        React.createElement('span',{className:'text-muted text-sm',style:{alignSelf:'center'}},'🟢 Fully offline — Ollama')
+      ),
+      React.createElement('div',{className:'ai-messages'},
+        messages.map((m,i)=>React.createElement('div',{key:i,className:`ai-msg ${m.role}`},
+          m.role==='ai'&&React.createElement('span',{style:{fontSize:11,color:'var(--text2)',display:'block',marginBottom:4}},'🤖 DFIR-AI'),
+          React.createElement('span',{style:{whiteSpace:'pre-wrap'}},m.text)
+        )),
+        loading&&React.createElement('div',{className:'ai-msg ai'},React.createElement('span',{className:'spin'},'⟳'),' Analyzing...'),
+        React.createElement('div',{ref:endRef})
+      ),
+      React.createElement('div',{className:'ai-input-row'},
+        React.createElement('input',{className:'ai-input',placeholder:'Ask anything about forensics, artifacts, IOCs, MITRE ATT&CK...',value:input,
+          onChange:e=>setInput(e.target.value),onKeyDown:e=>e.key==='Enter'&&send()}),
+        React.createElement('button',{className:'btn btn-primary',onClick:send,disabled:loading},'Send')
+      ),
+      React.createElement('div',{className:'flex',style:{marginTop:8,flexWrap:'wrap',gap:4}},
+        ['Explain MITRE T1547.001','What is mimikatz?','How to detect lateral movement?','Analyze a ransomware attack chain','What are common persistence mechanisms?'].map(q=>
+          React.createElement('button',{key:q,className:'btn btn-sm',style:{fontSize:11},onClick:()=>{setInput(q);}},'💡 '+q.substring(0,30))
+        )
+      )
+    )
+  );
+}
+
+// ── Users Page ──────────────────────────────────────────────────────
+function UsersPage(){
+  const [users,setUsers]=useState([]);
+  const [showModal,setShowModal]=useState(false);
+  const [form,setForm]=useState({username:'',email:'',full_name:'',password:'',role:'investigator'});
+  const [msg,setMsg]=useState('');
+  const me = JSON.parse(localStorage.getItem('dfir_user')||'{}');
+
+  useEffect(()=>{ api('/api/users/').then(setUsers).catch(()=>setMsg('Admin access required')); },[]);
+  async function createUser(){
+    try{
+      await api('/api/users/',{method:'POST',body:JSON.stringify(form)});
+      setShowModal(false); setMsg('User created!'); api('/api/users/').then(setUsers);
+    }catch(e){ setMsg(e.message); }
+  }
+  async function toggleUser(id,active){
+    await api(`/api/users/${id}`,{method:'PUT',body:JSON.stringify({is_active:!active})});
+    api('/api/users/').then(setUsers);
+  }
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('h2',{style:{fontSize:20,fontWeight:700}},'👥 User Management'),
+      me.role==='admin'&&React.createElement('button',{className:'btn btn-primary',onClick:()=>setShowModal(true)},'➕ Add User')
+    ),
+    msg && React.createElement('div',{className:'alert alert-info'},msg),
+    React.createElement('div',{className:'card',style:{padding:0}},
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,React.createElement('tr',null,['Username','Full Name','Email','Role','Status','Actions'].map(h=>React.createElement('th',{key:h},h)))),
+          React.createElement('tbody',null,
+            users.map(u=>React.createElement('tr',{key:u.id},
+              React.createElement('td',null,React.createElement('span',{style:{fontWeight:600}},u.username)),
+              React.createElement('td',null,u.full_name||'—'),
+              React.createElement('td',null,u.email),
+              React.createElement('td',null,React.createElement('span',{className:'tag'},u.role)),
+              React.createElement('td',null,React.createElement('span',{className:u.is_active?'badge badge-low':'badge badge-info'},u.is_active?'Active':'Inactive')),
+              React.createElement('td',null,
+                me.role==='admin'&&u.id!==me.id&&React.createElement('button',{className:'btn btn-sm',onClick:()=>toggleUser(u.id,u.is_active)},u.is_active?'Deactivate':'Activate')
+              )
+            ))
+          )
+        )
+      )
+    ),
+    showModal&&React.createElement('div',{className:'modal-overlay'},
+      React.createElement('div',{className:'modal'},
+        React.createElement('div',{className:'modal-title'},'👤 Create User'),
+        ['username','email','full_name','password'].map(f=>
+          React.createElement('div',{key:f,className:'form-group'},
+            React.createElement('label',{className:'form-label'},f.replace('_',' ').toUpperCase()),
+            React.createElement('input',{className:'form-input',type:f==='password'?'password':'text',value:form[f],onChange:e=>setForm({...form,[f]:e.target.value})})
+          )
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'ROLE'),
+          React.createElement('select',{className:'form-select',value:form.role,onChange:e=>setForm({...form,role:e.target.value})},
+            ['admin','investigator','viewer'].map(r=>React.createElement('option',{key:r,value:r},r))
+          )
+        ),
+        React.createElement('div',{className:'modal-footer'},
+          React.createElement('button',{className:'btn',onClick:()=>setShowModal(false)},'Cancel'),
+          React.createElement('button',{className:'btn btn-primary',onClick:createUser},'Create')
+        )
+      )
+    )
+  );
+}
+
+// ── App Shell ───────────────────────────────────────────────────────
+function App(){
+  const [user,setUser]=useState(()=>{ try{ return JSON.parse(localStorage.getItem('dfir_user')||'null'); }catch{return null;} });
+  const [page,setPage]=useState('dashboard');
+  const [caseId,setCaseId]=useState(null);
+  const [dark,setDark]=useState(true);
+
+  useEffect(()=>{
+    if(dark) document.body.classList.remove('light');
+    else document.body.classList.add('light');
+  },[dark]);
+
+  if(!user) return React.createElement(LoginPage,{onLogin:u=>{setUser(u);}});
+
+  function logout(){ localStorage.removeItem('dfir_token'); localStorage.removeItem('dfir_user'); setUser(null); }
+
+  const nav = [
+    {section:'Investigation'},
+    {id:'dashboard',icon:'📊',label:'Dashboard'},
+    {id:'cases',icon:'📁',label:'Cases'},
+    {id:'casedetail',icon:'🔍',label:'Active Case',hide:!caseId},
+    {id:'evidence',icon:'💾',label:'Evidence'},
+    {section:'Analysis'},
+    {id:'artifacts',icon:'🔬',label:'Artifacts',sub:true},
+    {id:'timeline',icon:'📅',label:'Timeline',sub:true},
+    {id:'iocs',icon:'🎯',label:'IOCs',sub:true},
+    {id:'scanner',icon:'⚡',label:'Scanner',sub:true},
+    {section:'AI & Reports'},
+    {id:'ai',icon:'🤖',label:'AI Assistant'},
+    {section:'Admin'},
+    {id:'users',icon:'👥',label:'Users'},
+  ].filter(n=>!n.hide);
+
+  const pageTitle = {dashboard:'Dashboard',cases:'Cases',casedetail:'Case Detail',evidence:'Evidence',
+    artifacts:'Artifacts',timeline:'Timeline',iocs:'IOCs',scanner:'Scanner',ai:'AI Assistant',users:'Users'};
+
+  function renderPage(){
+    switch(page){
+      case 'dashboard': return React.createElement(Dashboard,{setPage,setCaseId});
+      case 'cases': return React.createElement(CasesPage,{setCaseId,setPage});
+      case 'casedetail': return caseId?React.createElement(CaseDetail,{caseId,setPage}):React.createElement('div',{className:'empty'},'No case selected');
+      case 'evidence': return React.createElement(EvidencePage);
+      case 'ai': return React.createElement(AIPage);
+      case 'users': return React.createElement(UsersPage);
+      case 'artifacts': return caseId?React.createElement(CaseDetail,{caseId,setPage,defaultTab:'artifacts'}):React.createElement('div',{className:'empty'},'Select a case first');
+      case 'timeline': return caseId?React.createElement(CaseDetail,{caseId,setPage,defaultTab:'timeline'}):React.createElement('div',{className:'empty'},'Select a case first');
+      case 'iocs': return caseId?React.createElement(CaseDetail,{caseId,setPage,defaultTab:'iocs'}):React.createElement('div',{className:'empty'},'Select a case first');
+      default: return React.createElement(Dashboard,{setPage,setCaseId});
+    }
+  }
+
+  return React.createElement('div',{id:'app-shell',style:{display:'flex',height:'100vh',width:'100%'}},
+    React.createElement('div',{className:'sidebar'},
+      React.createElement('div',{className:'sidebar-logo'},
+        React.createElement('div',{className:'logo-icon'},'🔍'),
+        React.createElement('div',null,
+          React.createElement('div',{className:'logo-text'},'DFIR Suite'),
+          React.createElement('div',{className:'logo-sub'},'v1.0 • Offline')
+        )
+      ),
+      React.createElement('nav',{className:'nav-section'},
+        nav.map((n,i)=>
+          n.section
+            ? React.createElement('div',{key:i,className:'nav-label'},n.section)
+            : React.createElement('div',{key:n.id,className:`nav-item${page===n.id?' active':''}`,
+                style:n.sub?{paddingLeft:28}:{},
+                onClick:()=>{if(n.id==='casedetail'&&caseId)setPage('casedetail');else setPage(n.id);}},
+                React.createElement('span',{className:'nav-icon'},n.icon),
+                React.createElement('span',null,n.label)
+              )
+        )
+      ),
+      React.createElement('div',{style:{marginTop:'auto',padding:12,borderTop:'1px solid var(--border)'}},
+        React.createElement('div',{className:'flex-between',style:{marginBottom:8}},
+          React.createElement('div',null,
+            React.createElement('div',{style:{fontSize:13,fontWeight:600}},user.username),
+            React.createElement('div',{className:'text-muted text-sm'},user.role)
+          ),
+          React.createElement('button',{className:'btn btn-sm',onClick:()=>setDark(!dark)},dark?'☀':'🌙')
+        ),
+        React.createElement('button',{className:'btn btn-sm btn-danger',style:{width:'100%'},onClick:logout},'Sign Out')
+      )
+    ),
+    React.createElement('div',{className:'main'},
+      React.createElement('div',{className:'topbar'},
+        React.createElement('div',{className:'topbar-title'},pageTitle[page]||page),
+        caseId&&page!=='cases'&&React.createElement('div',{className:'topbar-badge',style:{cursor:'pointer'},onClick:()=>setPage('casedetail')},'Active Case'),
+        React.createElement('div',{className:'flex'},
+          React.createElement('span',{className:'topbar-badge'},'🟢 Offline'),
+          React.createElement('span',{className:'topbar-badge'},'🤖 Ollama')
+        )
+      ),
+      React.createElement('div',{className:'content'},renderPage())
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
