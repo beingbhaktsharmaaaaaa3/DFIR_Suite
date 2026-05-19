@@ -5,6 +5,8 @@
 
 ## Quick Start
 
+---- python 3 needed for this installer
+
 ### Windows
 ```
 Double-click: start_windows.bat
