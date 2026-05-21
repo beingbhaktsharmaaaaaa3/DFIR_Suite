@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ForenCore — Forensic Workstation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111827;--bg2:#1f2937;--bg3:#374151;--bg4:#4b5563;
+  --border:#2d3748;--border2:#374151;
+  --text:#f9fafb;--text2:#9ca3af;--text3:#6b7280;
+  --purple:#7c3aed;--purple2:#6d28d9;--purple3:#a78bfa;--purple4:#ede9fe;
+  --blue:#3b82f6;--blue2:#1d4ed8;
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;--cyan:#06b6d4;
+  --sidebar:230px;--topbar:52px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;overflow:hidden}
+#root{display:flex;height:100vh}
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--bg4)}
+
+/* ── Sidebar ── */
+.sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-logo{padding:16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--purple),#4f46e5);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-name{font-size:16px;font-weight:800;background:linear-gradient(90deg,var(--purple3),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-ver{font-size:10px;color:var(--text3);margin-top:1px}
+.nav-group{padding:10px 0 4px}
+.nav-section-label{padding:4px 14px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;color:var(--text2);border-left:3px solid transparent;transition:all .12s;font-size:12.5px;position:relative}
+.nav-item:hover{background:rgba(124,58,237,.08);color:var(--text)}
+.nav-item.active{background:rgba(124,58,237,.15);color:var(--purple3);border-left-color:var(--purple)}
+.nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:var(--green);margin-left:auto;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sidebar-footer{margin-top:auto;padding:12px 14px;border-top:1px solid var(--border)}
+.sys-bar{background:var(--bg3);border-radius:4px;height:4px;margin-top:4px;overflow:hidden}
+.sys-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--blue));transition:width .5s}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:var(--topbar);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:700;flex:1;display:flex;align-items:center;gap:8px}
+.topbar-icon{width:28px;height:28px;border-radius:6px;background:rgba(124,58,237,.2);display:flex;align-items:center;justify-content:center;font-size:14px}
+.page-content{flex:1;overflow-y:auto;padding:20px}
+
+/* ── Buttons ── */
+.btn{padding:7px 14px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px;transition:all .12s;white-space:nowrap}
+.btn:hover{border-color:var(--purple3);color:var(--purple3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--purple2);border-color:var(--purple);color:#fff}
+.btn-primary:hover{background:var(--purple);border-color:var(--purple3);color:#fff}
+.btn-success{background:rgba(16,185,129,.2);border-color:var(--green);color:var(--green)}
+.btn-danger{background:rgba(239,68,68,.15);border-color:var(--red);color:var(--red)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-lg{padding:10px 20px;font-size:13px}
+
+/* ── Cards ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.card-title{font-weight:700;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.card-subtitle{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Stat Cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .12s}
+.stat-card:hover{border-color:var(--purple3)}
+.stat-n{font-size:26px;font-weight:800}
+.stat-l{font-size:11px;color:var(--text3);margin-top:3px}
+.stat-purple .stat-n{color:var(--purple3)}
+.stat-green .stat-n{color:var(--green)}
+.stat-blue .stat-n{color:var(--blue)}
+.stat-orange .stat-n{color:var(--orange)}
+.stat-red .stat-n{color:var(--red)}
+.stat-cyan .stat-n{color:var(--cyan)}
+
+/* ── Tables ── */
+.table-wrap{overflow-x:auto;border-radius:8px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:9px 12px;font-size:11px;font-weight:700;color:var(--text3);background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(124,58,237,.04)}
+.empty-row{text-align:center;padding:30px;color:var(--text3)}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.badge-purple{background:rgba(124,58,237,.2);color:var(--purple3)}
+.badge-green{background:rgba(16,185,129,.2);color:var(--green)}
+.badge-red{background:rgba(239,68,68,.2);color:var(--red)}
+.badge-orange{background:rgba(245,158,11,.2);color:var(--orange)}
+.badge-blue{background:rgba(59,130,246,.2);color:var(--blue)}
+.badge-grey{background:var(--bg3);color:var(--text3)}
+.badge-cyan{background:rgba(6,182,212,.2);color:var(--cyan)}
+
+/* ── Forms ── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.form-input{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;transition:border-color .12s}
+.form-input:focus{outline:none;border-color:var(--purple)}
+.form-select{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px}
+textarea.form-input{resize:vertical;min-height:70px;font-family:monospace}
+
+/* ── Progress ── */
+.progress-wrap{background:var(--bg3);border-radius:6px;height:8px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--purple),var(--blue));transition:width .4s ease}
+.progress-fill.green{background:linear-gradient(90deg,var(--green),var(--cyan))}
+.progress-fill.red{background:linear-gradient(90deg,var(--red),var(--orange))}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 14px;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;font-size:12px;font-weight:600;transition:all .12s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--purple3);border-bottom-color:var(--purple)}
+
+/* ── Alert / Toast ── */
+.alert{padding:10px 14px;border-radius:8px;font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.alert-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--blue)}
+.alert-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.alert-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--orange)}
+.alert-danger{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.toast-container{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;min-width:260px;animation:slideIn .2s ease}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Hex viewer ── */
+.hex-row{display:flex;gap:16px;padding:3px 0;font-size:11px;font-family:monospace}
+.hex-offset{color:var(--purple3);width:70px;flex-shrink:0}
+.hex-bytes{color:var(--green);flex:1;letter-spacing:.5px}
+.hex-ascii{color:var(--text2);width:120px;flex-shrink:0}
+
+/* ── Process tree ── */
+.proc-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background .1s}
+.proc-row:hover{background:var(--bg3)}
+.proc-row.suspicious{background:rgba(239,68,68,.08);border-left:3px solid var(--red)}
+.proc-indent{border-left:2px solid var(--border2);margin-left:12px;padding-left:4px}
+
+/* ── Drop zone ── */
+.dropzone{border:2px dashed var(--border2);border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:all .15s;color:var(--text3)}
+.dropzone:hover,.dropzone.drag-over{border-color:var(--purple);background:rgba(124,58,237,.05);color:var(--purple3)}
+.dropzone-icon{font-size:36px;margin-bottom:10px}
+
+/* ── Misc ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.flex{display:flex;align-items:center;gap:8px}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.flex-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.mt{margin-top:12px}
+.text-muted{color:var(--text3)}
+.text-sm{font-size:11px}
+.text-xs{font-size:10px}
+.text-mono{font-family:monospace}
+.text-purple{color:var(--purple3)}
+.text-green{color:var(--green)}
+.text-red{color:var(--red)}
+.text-orange{color:var(--orange)}
+.text-blue{color:var(--blue)}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader{text-align:center;padding:32px;color:var(--text3)}
+.tag{display:inline-block;background:rgba(124,58,237,.15);color:var(--purple3);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.hash-display{font-family:monospace;font-size:10px;background:var(--bg3);padding:6px 10px;border-radius:6px;word-break:break-all;color:var(--green);margin:4px 0}
+code{background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px;font-family:monospace;color:var(--cyan)}
+.panel-header{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.info-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-key{color:var(--text3)}
+.info-val{color:var(--text);font-weight:500;font-family:monospace;font-size:11px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {useState,useEffect,useRef,useCallback,useReducer}=React;
+const API='http://localhost:8000';
+
+async function api(path,opts={}){
+  const headers={'Content-Type':'application/json',...(opts.headers||{})};
+  const res=await fetch(API+path,{...opts,headers});
+  if(!res.ok){const e=await res.json().catch(()=>({detail:'Error'}));throw new Error(e.detail||'Request failed');}
+  if(res.status===204)return null;
+  return res.json();
+}
+async function apiForm(path,formData){
+  const res=await fetch(API+path,{method:'POST',body:formData});
+  if(!res.ok){const e=await res.json().catch(()=>({detail:'Upload failed'}));throw new Error(e.detail||'Upload failed');}
+  return res.json();
+}
+
+// ── Toast system ────────────────────────────────────────────────────
+let _toastId=0;
+let _setToasts=null;
+function toast(msg,type='info'){
+  if(_setToasts){
+    const id=++_toastId;
+    _setToasts(t=>[...t,{id,msg,type}]);
+    setTimeout(()=>_setToasts(t=>t.filter(x=>x.id!==id)),4000);
+  }
+}
+const TOAST_ICONS={info:'ℹ️',success:'✅',warn:'⚠️',error:'❌'};
+function ToastContainer(){
+  const [toasts,setToasts]=useState([]);
+  _setToasts=setToasts;
+  return React.createElement('div',{className:'toast-container'},
+    toasts.map(t=>React.createElement('div',{key:t.id,className:'toast'},
+      TOAST_ICONS[t.type]||'ℹ️',
+      React.createElement('span',null,t.msg)
+    ))
+  );
+}
+
+// ── Reusable components ─────────────────────────────────────────────
+function Badge({label,type='grey'}){
+  return React.createElement('span',{className:`badge badge-${type}`},label);
+}
+function Loader({msg='Loading...'}){
+  return React.createElement('div',{className:'loader'},
+    React.createElement('span',{className:'spin'},'⟳'),' ',msg
+  );
+}
+function ProgressBar({pct,color=''}){
+  return React.createElement('div',{className:'progress-wrap'},
+    React.createElement('div',{className:`progress-fill ${color}`,style:{width:`${Math.min(100,pct||0)}%`}})
+  );
+}
+function InfoRow({k,v}){
+  return React.createElement('div',{className:'info-row'},
+    React.createElement('span',{className:'info-key'},k),
+    React.createElement('span',{className:'info-val'},v)
+  );
+}
+function Section({title,icon,children,action=null}){
+  return React.createElement('div',{className:'card'},
+    React.createElement('div',{className:'flex-between',style:{marginBottom:12}},
+      React.createElement('div',{className:'card-title',style:{margin:0}},icon&&React.createElement('span',null,icon),' ',title),
+      action
+    ),
+    children
+  );
+}
+function EmptyState({icon,msg}){
+  return React.createElement('div',{style:{textAlign:'center',padding:30,color:'var(--text3)'}},
+    React.createElement('div',{style:{fontSize:32,marginBottom:8}},icon),
+    React.createElement('div',null,msg)
+  );
+}
+
+// ── Poll helper ─────────────────────────────────────────────────────
+function usePoll(url,interval=1500,active=true){
+  const [data,setData]=useState(null);
+  useEffect(()=>{
+    if(!url||!active)return;
+    let alive=true;
+    const tick=()=>api(url).then(d=>{if(alive)setData(d);}).catch(()=>{});
+    tick();
+    const id=setInterval(tick,interval);
+    return()=>{alive=false;clearInterval(id);};
+  },[url,active]);
+  return data;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════
+function Dashboard({setPage}){
+  const [data,setData]=useState(null);
+  const [sysInfo,setSysInfo]=useState(null);
+  useEffect(()=>{
+    api('/api/system/dashboard').then(setData).catch(()=>{});
+    api('/api/system/info').then(setSysInfo).catch(()=>{});
+  },[]);
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h2',{style:{fontSize:20,fontWeight:800,color:'var(--text)'}},'Forensic Workstation'),
+        React.createElement('p',{className:'text-muted text-sm'},data?.platform||'Detecting system...')
+      ),
+      React.createElement('div',{className:'flex'},
+        React.createElement('span',{className:'badge badge-green'},'● ONLINE'),
+        React.createElement('span',{className:'badge badge-purple'},'ForenCore v1.0')
+      )
+    ),
+    sysInfo&&React.createElement('div',{className:'stat-grid'},
+      React.createElement('div',{className:'stat-card stat-purple'},
+        React.createElement('div',{className:'stat-n'},`${sysInfo.ram_total_gb||'?'}`),
+        React.createElement('div',{className:'stat-l'},'💾 RAM (GB)')
+      ),
+      React.createElement('div',{className:'stat-card stat-green'},
+        React.createElement('div',{className:'stat-n'},data?.capture_count||0),
+        React.createElement('div',{className:'stat-l'},'🧠 RAM Captures')
+      ),
+      React.createElement('div',{className:'stat-card stat-blue'},
+        React.createElement('div',{className:'stat-n'},data?.image_count||0),
+        React.createElement('div',{className:'stat-l'},'💿 Disk Images')
+      ),
+      React.createElement('div',{className:'stat-card stat-orange'},
+        React.createElement('div',{className:'stat-n'},data?.report_count||0),
+        React.createElement('div',{className:'stat-l'},'📄 Reports')
+      )
+    ),
+    React.createElement('div',{className:'grid2'},
+      React.createElement(Section,{title:'System Information',icon:'🖥'},
+        sysInfo?React.createElement('div',null,
+          React.createElement(InfoRow,{k:'Hostname',v:sysInfo.hostname}),
+          React.createElement(InfoRow,{k:'OS',v:`${sysInfo.os} ${sysInfo.os_release}`}),
+          React.createElement(InfoRow,{k:'Architecture',v:sysInfo.architecture}),
+          React.createElement(InfoRow,{k:'RAM Total',v:`${sysInfo.ram_total_gb} GB`}),
+          React.createElement(InfoRow,{k:'RAM Used',v:`${sysInfo.ram_percent}%`}),
+          React.createElement('div',{className:'mt'},
+            React.createElement('div',{className:'text-sm text-muted',style:{marginBottom:4}},'Memory Usage'),
+            React.createElement(ProgressBar,{pct:sysInfo.ram_percent,color:sysInfo.ram_percent>80?'red':''})
+          )
+        ):React.createElement(Loader)
+      ),
+      React.createElement(Section,{title:'Quick Actions',icon:'⚡'},
+        React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},
+          [
+            {icon:'🧠',label:'Capture RAM',page:'ram-capture',color:'btn-primary'},
+            {icon:'💿',label:'Create Disk Image',page:'disk-imaging',color:''},
+            {icon:'🔍',label:'Analyze Memory Dump',page:'ram-analysis',color:''},
+            {icon:'🗂',label:'Recover Deleted Files',page:'data-recovery',color:''},
+            {icon:'📄',label:'Generate Report',page:'reports',color:''},
+          ].map(a=>React.createElement('button',{
+            key:a.page,className:`btn ${a.color}`,style:{justifyContent:'flex-start'},
+            onClick:()=>setPage(a.page)
+          },a.icon,' ',a.label))
+        )
+      )
+    ),
+    React.createElement(Section,{title:'Recent Evidence Files',icon:'📁'},
+      !data?React.createElement(Loader):
+      data.captures.length===0&&data.images.length===0
+        ?React.createElement(EmptyState,{icon:'📭',msg:'No evidence files yet. Start by capturing RAM or creating a disk image.'})
+        :React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['Name','Type','Size','Modified'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              [...data.captures,...data.images].slice(0,10).map((f,i)=>
+                React.createElement('tr',{key:i},
+                  React.createElement('td',null,React.createElement('span',{className:'text-mono text-sm'},f.name)),
+                  React.createElement('td',null,React.createElement(Badge,{label:f.format||'raw',type:'purple'})),
+                  React.createElement('td',null,`${f.size_gb} GB`),
+                  React.createElement('td',null,React.createElement('span',{className:'text-muted text-sm'},f.modified?.substring(0,16)||''))
+                )
+              )
+            )
+          )
+        )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RAM CAPTURE
+// ══════════════════════════════════════════════════════════════════
+function RamCapture(){
+  const [sysInfo,setSysInfo]=useState(null);
+  const [taskId,setTaskId]=useState(null);
+  const [fmt,setFmt]=useState('raw');
+  const [outName,setOutName]=useState('');
+  const [captures,setCaptures]=useState([]);
+  const poll=usePoll(taskId?`/api/ram/capture/progress/${taskId}`:null,1200,!!taskId);
+
+  useEffect(()=>{
+    api('/api/ram/capture/sysinfo').then(setSysInfo).catch(()=>{});
+    api('/api/ram/capture/list').then(setCaptures).catch(()=>{});
+  },[]);
+  useEffect(()=>{
+    if(poll?.status==='completed'){
+      toast('✅ RAM capture complete!','success');
+      api('/api/ram/capture/list').then(setCaptures).catch(()=>{});
+    }
+    if(poll?.status==='failed') toast('❌ Capture failed: '+poll.message,'error');
+  },[poll?.status]);
+
+  async function startCapture(){
+    try{
+      const r=await api('/api/ram/capture/start',{method:'POST',body:JSON.stringify({fmt,output_name:outName||undefined})});
+      setTaskId(r.task_id);
+      toast('🧠 RAM capture started','info');
+    }catch(e){toast('❌ '+e.message,'error');}
+  }
+
+  const running=poll&&['starting','running','hashing'].includes(poll.status);
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h2',{style:{fontSize:18,fontWeight:800}},'🧠 RAM Capture'),
+        React.createElement('p',{className:'text-muted text-sm'},'Live memory acquisition — WinPMEM / /proc/kcore')
+      )
+    ),
+    React.createElement('div',{className:'grid2'},
+      React.createElement(Section,{title:'System Memory',icon:'💾'},
+        sysInfo?React.createElement('div',null,
+          React.createElement(InfoRow,{k:'Hostname',v:sysInfo.hostname}),
+          React.createElement(InfoRow,{k:'OS',v:`${sysInfo.os} ${sysInfo.os_release}`}),
+          React.createElement(InfoRow,{k:'Total RAM',v:`${sysInfo.ram_total_gb} GB`}),
+          React.createElement(InfoRow,{k:'Available',v:`${sysInfo.ram_available_gb} GB`}),
+          React.createElement(InfoRow,{k:'Used',v:`${sysInfo.ram_used_gb} GB (${sysInfo.ram_percent}%)`}),
+          React.createElement(InfoRow,{k:'CPU Cores',v:sysInfo.cpu_count}),
+          React.createElement(InfoRow,{k:'Boot Time',v:sysInfo.boot_time?.substring(0,19)||'?'}),
+          React.createElement('div',{className:'mt'},React.createElement(ProgressBar,{pct:sysInfo.ram_percent,color:sysInfo.ram_percent>80?'red':''}))
+        ):React.createElement(Loader)
+      ),
+      React.createElement(Section,{title:'Acquisition Settings',icon:'⚙️'},
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Output Format'),
+          React.createElement('select',{className:'form-select',value:fmt,onChange:e=>setFmt(e.target.value)},
+            ['raw','mem','dmp'].map(f=>React.createElement('option',{key:f,value:f},f.toUpperCase()+` (.${f})`))
+          )
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Output Filename (optional)'),
+          React.createElement('input',{className:'form-input',value:outName,
+            onChange:e=>setOutName(e.target.value),placeholder:`memdump_YYYYMMDD.${fmt}`})
+        ),
+        React.createElement('div',{className:'alert alert-warn'},
+          '⚠️ Requires Administrator/root privileges for full physical memory access.'
+        ),
+        React.createElement('button',{
+          className:'btn btn-primary btn-lg',style:{width:'100%'},
+          onClick:startCapture,disabled:running
+        },running?[React.createElement('span',{key:'s',className:'spin'},'⟳'),' Capturing...']:'🧠 Start RAM Capture')
+      )
+    ),
+    taskId&&poll&&React.createElement(Section,{title:'Capture Progress',icon:'📊'},
+      React.createElement('div',{className:'flex-between',style:{marginBottom:8}},
+        React.createElement('span',{className:`text-sm badge badge-${poll.status==='completed'?'green':poll.status==='failed'?'red':'orange'}`},poll.status?.toUpperCase()),
+        React.createElement('span',{className:'text-sm text-muted'},`${poll.progress||0}%`)
+      ),
+      React.createElement(ProgressBar,{pct:poll.progress,color:poll.status==='completed'?'green':poll.status==='failed'?'red':''}),
+      React.createElement('p',{className:'text-sm text-muted',style:{marginTop:8}},poll.message),
+      poll.status==='completed'&&React.createElement('div',{className:'mt'},
+        React.createElement('div',{className:'grid3'},
+          React.createElement('div',{className:'card',style:{margin:0}},
+            React.createElement('div',{className:'text-xs text-muted'},'MD5'),
+            React.createElement('div',{className:'hash-display'},poll.hashes?.md5||'—')
+          ),
+          React.createElement('div',{className:'card',style:{margin:0}},
+            React.createElement('div',{className:'text-xs text-muted'},'SHA1'),
+            React.createElement('div',{className:'hash-display'},poll.hashes?.sha1||'—')
+          ),
+          React.createElement('div',{className:'card',style:{margin:0}},
+            React.createElement('div',{className:'text-xs text-muted'},'SHA256'),
+            React.createElement('div',{className:'hash-display'},poll.hashes?.sha256||'—')
+          )
+        )
+      )
+    ),
+    React.createElement(Section,{title:'Captured Memory Dumps',icon:'📂',
+      action:React.createElement('button',{className:'btn btn-sm',onClick:()=>api('/api/ram/capture/list').then(setCaptures)},'🔄 Refresh')},
+      captures.length===0?React.createElement(EmptyState,{icon:'🧠',msg:'No captures yet'}):
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,React.createElement('tr',null,
+            ['Filename','Size','Modified'].map(h=>React.createElement('th',{key:h},h))
+          )),
+          React.createElement('tbody',null,
+            captures.map((c,i)=>React.createElement('tr',{key:i},
+              React.createElement('td',null,React.createElement('span',{className:'text-mono text-sm'},c.name)),
+              React.createElement('td',null,`${c.size_gb} GB`),
+              React.createElement('td',null,React.createElement('span',{className:'text-muted text-sm'},c.modified?.substring(0,16)))
+            ))
+          )
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RAM ANALYSIS
+// ══════════════════════════════════════════════════════════════════
+function RamAnalysis(){
+  const [dumpPath,setDumpPath]=useState('');
+  const [taskId,setTaskId]=useState(null);
+  const [tab,setTab]=useState('pslist');
+  const [volStatus,setVolStatus]=useState(null);
+  const [results,setResults]=useState(null);
+  const poll=usePoll(taskId?`/api/ram/analysis/progress/${taskId}`:null,1500,!!taskId);
+  const fileRef=useRef();
+
+  useEffect(()=>{api('/api/ram/analysis/volatility/status').then(setVolStatus).catch(()=>{});},[]);
+  useEffect(()=>{if(poll?.status==='completed'){setResults(poll.results);toast('Analysis complete','success');}
+    if(poll?.status==='failed')toast('Analysis failed: '+poll.message,'error');},[poll?.status]);
+
+  async function runAnalysis(){
+    if(!dumpPath.trim()){toast('Enter a dump file path','warn');return;}
+    try{
+      const r=await api('/api/ram/analysis/full',{method:'POST',body:JSON.stringify({dump_path:dumpPath})});
+      setTaskId(r.task_id);toast('🔍 Analysis started','info');
+    }catch(e){toast('❌ '+e.message,'error');}
+  }
+
+  const tabs=['pslist','netscan','malfind','cmdline','dlllist'];
+  const tabLabels={pslist:'Process List',netscan:'Network',malfind:'Malfind',cmdline:'Commands',dlllist:'DLLs'};
+
+  function renderResults(){
+    if(!results) return React.createElement(EmptyState,{icon:'🔍',msg:'Run analysis to see results'});
+    const r=results[tab]||{};
+    if(tab==='pslist'){
+      const procs=r.processes||[];
+      const susp=procs.filter(p=>p.is_suspicious);
+      return React.createElement('div',null,
+        React.createElement('div',{className:'flex',style:{marginBottom:10,gap:12}},
+          React.createElement('span',{className:'badge badge-blue'},'Total: '+procs.length),
+          React.createElement('span',{className:'badge badge-red'},'Suspicious: '+susp.length),
+          r.note&&React.createElement('span',{className:'badge badge-orange'},'Live Data')
+        ),
+        React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['PID','PPID','Name','Threads','Suspicious','Reason'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              procs.slice(0,200).map((p,i)=>React.createElement('tr',{key:i,style:p.is_suspicious?{background:'rgba(239,68,68,.05)'}:{}},
+                React.createElement('td',null,React.createElement('code',null,p.pid)),
+                React.createElement('td',null,React.createElement('code',null,p.ppid)),
+                React.createElement('td',null,React.createElement('span',{style:{fontWeight:p.is_suspicious?700:400,color:p.is_suspicious?'var(--red)':''}},p.name)),
+                React.createElement('td',null,p.threads||0),
+                React.createElement('td',null,p.is_suspicious?React.createElement(Badge,{label:'⚠ YES',type:'red'}):React.createElement(Badge,{label:'OK',type:'green'})),
+                React.createElement('td',null,React.createElement('span',{className:'text-xs text-muted'},(p.suspicious_reasons||[]).join(', ')))
+              ))
+            )
+          )
+        )
+      );
+    }
+    if(tab==='netscan'){
+      const conns=r.connections||[];
+      return React.createElement('div',null,
+        React.createElement('div',{className:'flex',style:{marginBottom:10}},
+          React.createElement('span',{className:'badge badge-blue'},'Total: '+conns.length),
+          React.createElement('span',{className:'badge badge-red'},'Suspicious: '+conns.filter(c=>c.is_suspicious).length)
+        ),
+        React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['Proto','Local','Remote','State','PID','Process','Flag'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              conns.slice(0,100).map((c,i)=>React.createElement('tr',{key:i,style:c.is_suspicious?{background:'rgba(239,68,68,.05)'}:{}},
+                React.createElement('td',null,React.createElement(Badge,{label:c.proto,type:'blue'})),
+                React.createElement('td',null,React.createElement('code',null,`${c.local_addr}:${c.local_port}`)),
+                React.createElement('td',null,c.remote_addr?React.createElement('code',null,`${c.remote_addr}:${c.remote_port}`):'—'),
+                React.createElement('td',null,React.createElement('span',{className:'text-xs'},c.state)),
+                React.createElement('td',null,React.createElement('code',null,c.pid)),
+                React.createElement('td',null,c.owner||'—'),
+                React.createElement('td',null,c.is_suspicious?React.createElement(Badge,{label:'⚠ SUSP',type:'red'}):React.createElement(Badge,{label:'OK',type:'green'}))
+              ))
+            )
+          )
+        )
+      );
+    }
+    if(tab==='malfind'){
+      const findings=r.findings||[];
+      if(findings.length===0)return React.createElement(EmptyState,{icon:'✅',msg:'No malfind results. Provide a real memory dump for analysis.'+(r.note?'\n'+r.note:'')});
+      return React.createElement('div',null,
+        React.createElement('div',{className:'flex',style:{marginBottom:10}},React.createElement('span',{className:'badge badge-red'},'Findings: '+findings.length)),
+        findings.map((f,i)=>React.createElement('div',{key:i,className:'card',style:{borderColor:'var(--red)',marginBottom:10}},
+          React.createElement('div',{className:'flex',style:{marginBottom:8}},
+            React.createElement(Badge,{label:'PID '+f.pid,type:'purple'}),
+            React.createElement(Badge,{label:f.process,type:'red'}),
+            React.createElement(Badge,{label:'CRITICAL',type:'red'})
+          ),
+          React.createElement('div',{className:'text-xs text-muted',style:{marginBottom:4}},'Protection: '+f.protection),
+          f.hexdump&&React.createElement('div',{className:'hash-display',style:{fontSize:10,marginTop:4}},f.hexdump)
+        ))
+      );
+    }
+    if(tab==='cmdline'){
+      const cmds=r.commands||[];
+      return React.createElement('div',null,
+        React.createElement('div',{className:'flex',style:{marginBottom:10}},
+          React.createElement('span',{className:'badge badge-blue'},'Total: '+cmds.length),
+          React.createElement('span',{className:'badge badge-red'},'Suspicious: '+cmds.filter(c=>c.is_suspicious).length)
+        ),
+        React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['PID','Process','Command Line','Flag'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              cmds.map((c,i)=>React.createElement('tr',{key:i,style:c.is_suspicious?{background:'rgba(239,68,68,.05)'}:{}},
+                React.createElement('td',null,React.createElement('code',null,c.pid)),
+                React.createElement('td',null,c.process),
+                React.createElement('td',null,React.createElement('code',{style:{fontSize:10,wordBreak:'break-all'}},c.cmdline?.substring(0,120))),
+                React.createElement('td',null,c.is_suspicious?React.createElement(Badge,{label:'⚠ SUSP',type:'red'}):React.createElement(Badge,{label:'OK',type:'green'}))
+              ))
+            )
+          )
+        )
+      );
+    }
+    if(tab==='dlllist'){
+      const dlls=r.dlls||[];
+      const susp=dlls.filter(d=>d.is_suspicious);
+      if(r.note)return React.createElement('div',null,React.createElement('div',{className:'alert alert-warn'},r.note));
+      return React.createElement('div',null,
+        React.createElement('div',{className:'flex',style:{marginBottom:10}},
+          React.createElement('span',{className:'badge badge-blue'},'DLLs: '+dlls.length),
+          React.createElement('span',{className:'badge badge-red'},'Suspicious: '+susp.length)
+        ),
+        React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['PID','Process','DLL Name','Path','Flag'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              dlls.slice(0,100).map((d,i)=>React.createElement('tr',{key:i,style:d.is_suspicious?{background:'rgba(239,68,68,.05)'}:{}},
+                React.createElement('td',null,React.createElement('code',null,d.pid)),
+                React.createElement('td',null,d.process),
+                React.createElement('td',null,React.createElement('span',{className:'text-mono text-sm'},d.name)),
+                React.createElement('td',null,React.createElement('span',{className:'text-xs text-muted'},d.path?.substring(0,50))),
+                React.createElement('td',null,d.is_suspicious?React.createElement(Badge,{label:'⚠',type:'red'}):null)
+              ))
+            )
+          )
+        )
+      );
+    }
+    return React.createElement('div',{className:'text-muted'},JSON.stringify(r).substring(0,200));
+  }
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('div',null,
+        React.createElement('h2',{style:{fontSize:18,fontWeight:800}},'🔍 RAM Analysis'),
+        React.createElement('p',{className:'text-muted text-sm'},'Volatility 3 memory forensics')
+      ),
+      volStatus&&React.createElement('div',{className:`badge badge-${volStatus.available?'green':'orange'}`},
+        volStatus.available?'✅ Volatility 3 Found':'⚠ Volatility 3 Not Found (using live fallback)'
+      )
+    ),
+    React.createElement(Section,{title:'Load Memory Dump',icon:'📂'},
+      React.createElement('div',{className:'flex',style:{gap:8}},
+        React.createElement('input',{className:'form-input',style:{flex:1},value:dumpPath,
+          onChange:e=>setDumpPath(e.target.value),
+          placeholder:'e.g. C:\\evidence\\memdump.raw  or  /forensics/mem.dump'}),
+        React.createElement('button',{className:'btn btn-sm',onClick:()=>{
+          api('/api/utils/evidence/list').then(d=>{
+            const files=[...(d.captures||[]),...(d.images||[])];
+            if(files[0])setDumpPath(files[0].path);
+            else toast('No evidence files found','warn');
+          });
+        }},'📁 Browse'),
+        React.createElement('button',{className:'btn btn-primary',onClick:runAnalysis,
+          disabled:!!taskId&&['starting','running'].includes(poll?.status)},
+          poll&&['starting','running'].includes(poll?.status)?
+            [React.createElement('span',{key:'s',className:'spin'},'⟳'),' Analyzing...']:
+            '▶ Run Analysis'
+        )
+      ),
+      !volStatus?.available&&React.createElement('div',{className:'alert alert-warn',style:{marginTop:10}},
+        '⚠ Volatility 3 not found — showing live system data. Install: ',
+        React.createElement('code',null,'pip install volatility3')
+      )
+    ),
+    poll&&poll.status!=='unknown'&&React.createElement(Section,{title:'Analysis Progress',icon:'📊'},
+      React.createElement('div',{className:'flex-between',style:{marginBottom:6}},
+        React.createElement(Badge,{label:poll.status?.toUpperCase(),type:poll.status==='completed'?'green':poll.status==='failed'?'red':'orange'}),
+        React.createElement('span',{className:'text-sm text-muted'},`${poll.progress||0}%`)
+      ),
+      React.createElement(ProgressBar,{pct:poll.progress,color:poll.status==='completed'?'green':''}),
+      React.createElement('p',{className:'text-xs text-muted',style:{marginTop:6}},poll.message)
+    ),
+    (results||(poll?.status==='completed'))&&React.createElement('div',null,
+      React.createElement('div',{className:'tabs'},
+        tabs.map(t=>React.createElement('div',{key:t,className:`tab${tab===t?' active':''}`,onClick:()=>setTab(t)},tabLabels[t]))
+      ),
+      renderResults()
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DISK IMAGING
+// ══════════════════════════════════════════════════════════════════
+function DiskImaging(){
+  const [drives,setDrives]=useState([]);
+  const [images,setImages]=useState([]);
+  const [source,setSource]=useState('');
+  const [fmt,setFmt]=useState('raw');
+  const [taskId,setTaskId]=useState(null);
+  const [uploading,setUploading]=useState(false);
+  const fileRef=useRef();
+  const poll=usePoll(taskId?`/api/disk/imaging/progress/${taskId}`:null,1500,!!taskId);
+
+  useEffect(()=>{
+    api('/api/disk/imaging/drives').then(setDrives).catch(()=>{});
+    api('/api/disk/imaging/list').then(setImages).catch(()=>{});
+  },[]);
+  useEffect(()=>{
+    if(poll?.status==='completed'){toast('✅ Disk image complete!','success');api('/api/disk/imaging/list').then(setImages);}
+    if(poll?.status==='failed')toast('❌ Imaging failed: '+poll.message,'error');
+  },[poll?.status]);
+
+  async function startImaging(){
+    if(!source.trim()){toast('Select or enter a source drive','warn');return;}
+    try{
+      const r=await api('/api/disk/imaging/start',{method:'POST',body:JSON.stringify({source,fmt})});
+      setTaskId(r.task_id);toast('💿 Disk imaging started','info');
+    }catch(e){toast('❌ '+e.message,'error');}
+  }
+
+  async function uploadImage(){
+    if(!fileRef.current?.files?.length){toast('Select a file','warn');return;}
+    setUploading(true);
+    try{
+      const fd=new FormData();fd.append('file',fileRef.current.files[0]);
+      const r=await apiForm('/api/disk/imaging/upload',fd);
+      toast('✅ Uploaded: '+r.name,'success');
+      api('/api/disk/imaging/list').then(setImages);
+    }catch(e){toast('❌ '+e.message,'error');}
+    setUploading(false);
+  }
+
+  const running=poll&&['starting','running','hashing'].includes(poll.status);
+
+  return React.createElement('div',null,
+    React.createElement('div',{className:'flex-between',style:{marginBottom:20}},
+      React.createElement('h2',{style:{fontSize:18,fontWeight:800}},'💿 Disk Imaging'),
+      React.createElement('p',{className:'text-muted text-sm'},'Forensic acquisition — dd / dc3dd / Python fallback')
+    ),
+    React.createElement('div',{className:'grid2'},
+      React.createElement(Section,{title:'Connected Drives',icon:'🖥'},
+        drives.length===0?React.createElement('div',{className:'text-muted text-sm'},'No drives detected or access denied.'):
+        drives.map((d,i)=>React.createElement('div',{key:i,
+          className:'card',style:{margin:'0 0 8px',cursor:'pointer',border:source===d.device?'1px solid var(--purple)':'1px solid var(--border)'},
+          onClick:()=>setSource(d.device)},
+          React.createElement('div',{className:'flex-between'},
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontWeight:700,fontSize:12}},d.device),
+              React.createElement('div',{className:'text-xs text-muted'},d.model||'Unknown Model')
+            ),
+            React.createElement('div',{style:{textAlign:'right'}},
+              React.createElement('div',{className:'text-sm'},d.size_gb,' GB'),
+              d.serial&&React.createElement('div',{className:'text-xs text-muted'},'S/N: '+d.serial)
+            )
+          ),
+          d.partitions?.length>0&&React.createElement('div',{className:'flex-wrap',style:{marginTop:6}},
+            d.partitions.slice(0,4).map((p,j)=>React.createElement('span',{key:j,className:'tag'},p.fstype||p.name||'partition'))
+          )
+        ))
+      ),
+      React.createElement(Section,{title:'Imaging Configuration',icon:'⚙️'},
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Source Device / File'),
+          React.createElement('input',{className:'form-input',value:source,onChange:e=>setSource(e.target.value),
+            placeholder:'e.g. /dev/sdb  or  \\\\.\\PhysicalDrive1'})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Image Format'),
+          React.createElement('select',{className:'form-select',value:fmt,onChange:e=>setFmt(e.target.value)},
+            React.createElement('option',{value:'raw'},'RAW / DD (.dd)'),
+            React.createElement('option',{value:'img'},'IMG (.img)'),
+          )
+        ),
+        React.createElement('div',{className:'alert alert-danger'},
+          '🚫 Evidence drives are NEVER modified. Read-only acquisition only.'
+        ),
+        React.createElement('button',{className:'btn btn-primary',style:{width:'100%'},
+          onClick:startImaging,disabled:running},
+          running?[React.createElement('span',{key:'s',className:'spin'},'⟳'),' Imaging in progress...']:'💿 Start Imaging'
+        ),
+        React.createElement('hr',{className:'divider'}),
+        React.createElement('div',{className:'panel-header'},'📤 Upload Existing Image'),
+        React.createElement('div',{className:'flex',style:{gap:8}},
+          React.createElement('input',{type:'file',ref:fileRef,style:{flex:1,color:'var(--text)',fontSize:11}}),
+          React.createElement('button',{className:'btn btn-sm',onClick:uploadImage,disabled:uploading},
+            uploading?'Uploading...':'Upload')
+        )
+      )
+    ),
+    poll&&poll.status!=='unknown'&&React.createElement(Section,{title:'Imaging Progress',icon:'📊'},
+      React.createElement('div',{className:'flex-between',style:{marginBottom:6}},
+        React.createElement(Badge,{label:poll.status?.toUpperCase(),type:poll.status==='completed'?'green':poll.status==='failed'?'red':'orange'}),
+        React.createElement('span',{className:'text-sm'},`${poll.progress||0}%`)
+      ),
+      React.createElement(ProgressBar,{pct:poll.progress,color:poll.status==='completed'?'green':poll.status==='failed'?'red':''}),
+      React.createElement('p',{className:'text-xs text-muted',style:{marginTop:6}},poll.message),
+      poll.status==='completed'&&React.createElement('div',{className:'mt'},
+        poll.hashes&&React.createElement('div',null,
+          React.createElement('div',{className:'text-xs text-muted',style:{marginBottom:4}},'Acquisition Hashes (Verified)'),
+          ['md5','sha1','sha256'].map(h=>React.createElement('div',{key:h,className:'flex',style:{marginBottom:4}},
+            React.createElement('span',{className:'badge badge-purple',style:{marginRight:8,width:50,justifyContent:'center'}},h.toUpperCase()),
+            React.createElement('div',{className:'hash-display',style:{flex:1,margin:0}},poll.hashes[h])
+          ))
+        )
+      )
+    ),
+    React.createElement(Section,{title:'Acquired Images',icon:'📁',
+      action:React.createElement('button',{className:'btn btn-sm',onClick:()=>api('/api/disk/imaging/list').then(setImages)},'🔄 Refresh')},
+      images.length===0?React.createElement(EmptyState,{icon:'💿',msg:'No disk images yet'}):
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,React.createElement('tr',null,
+            ['Filename','Format','Size (GB)','Modified'].map(h=>React.createElement('th',{key:h},h))
+          )),
+          React.createElement('tbody',null,
+            images.map((img,i)=>React.createElement('tr',{key:i},
+              React.createElement('td',null,React.createElement('span',{className:'text-mono text-sm'},img.name)),
+              React.createElement('td',null,React.createElement(Badge,{label:img.format?.toUpperCase(),type:'blue'})),
+              React.createElement('td',null,img.size_gb),
+              React.createElement('td',null,React.createElement('span',{className:'text-muted text-sm'},img.modified?.substring(0,16)))
+            ))
+          )
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DISK ANALYSIS
+// ══════════════════════════════════════════════════════════════════
+function DiskAnalysis(){
+  const [imgPath,setImgPath]=useState('');
+  const [taskId,setTaskId]=useState(null);
+  const [tab,setTab]=useState('header');
+  const [results,setResults]=useState(null);
+  const poll=usePoll(taskId?`/api/disk/analysis/progress/${taskId}`:null,1500,!!taskId);
+
+  useEffect(()=>{if(poll?.status==='completed'){setResults(poll.results);toast('Disk analysis complete','success');}
+    if(poll?.status==='failed')toast('Failed: '+poll.message,'error');},[poll?.status]);
+
+  async function run(){
+    if(!imgPath.trim()){toast('Enter image path','warn');return;}
+    try{
+      const r=await api('/api/disk/analysis/start',{method:'POST',body:JSON.stringify({image_path:imgPath})});
+      setTaskId(r.task_id);toast('🔍 Analysis started','info');
+    }catch(e){toast('❌ '+e.message,'error');}
+  }
+
+  const tabs=['header','partitions','strings','entropy','filesystem','deleted'];
+  const tabLabels={header:'Image Info',partitions:'Partitions',strings:'Strings',
+                   entropy:'Entropy',filesystem:'Filesystem',deleted:'Deleted Files'};
+
+  function renderTab(){
+    if(!results)return React.createElement(EmptyState,{icon:'💿',msg:'Run analysis to see results'});
+    if(tab==='header'){
+      const h=results.header||{};
+      return React.createElement('div',null,
+        React.createElement(InfoRow,{k:'Path',v:h.path||'—'}),
+        React.createElement(InfoRow,{k:'Size',v:h.size_gb+' GB ('+h.size_bytes+' bytes)'}),
+        React.createElement(InfoRow,{k:'Has MBR',v:h.has_mbr?'✅ Yes':'❌ No'}),
+        React.createElement(InfoRow,{k:'MBR Signature',v:h.mbr_signature||'—'}),
+        React.createElement(InfoRow,{k:'Filesystem Hint',v:h.filesystem_hint||'Unknown'}),
+        h.header_hex&&React.createElement('div',{className:'mt'},
+          React.createElement('div',{className:'text-xs text-muted',style:{marginBottom:4}},'First 64 bytes (hex)'),
+          React.createElement('div',{className:'hash-display'},h.header_hex)
+        )
+      );
+    }
+    if(tab==='partitions'){
+      const parts=(results.partitions||[]);
+      return parts.length===0?React.createElement(EmptyState,{icon:'🗂',msg:'No partitions found'}):
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,React.createElement('tr',null,
+            ['#','Type','Start LBA','Size (MB)','Bootable'].map(h=>React.createElement('th',{key:h},h))
+          )),
+          React.createElement('tbody',null,
+            parts.map((p,i)=>React.createElement('tr',{key:i},
+              React.createElement('td',null,p.index||i+1),
+              React.createElement('td',null,React.createElement(Badge,{label:p.type_name||p.filesystem||'Unknown',type:'purple'})),
+              React.createElement('td',null,React.createElement('code',null,p.start_lba||p.start||'—')),
+              React.createElement('td',null,p.size_mb||'—'),
+              React.createElement('td',null,p.bootable?React.createElement(Badge,{label:'BOOT',type:'orange'}):React.createElement(Badge,{label:'—',type:'grey'}))
+            ))
+          )
+        )
+      );
+    }
+    if(tab==='strings'){
+      const strs=results.strings||[];
+      return React.createElement('div',null,
+        React.createElement('div',{className:'flex',style:{marginBottom:8}},React.createElement(Badge,{label:`${strs.length} strings extracted`,type:'blue'})),
+        React.createElement('div',{style:{maxHeight:400,overflowY:'auto',background:'var(--bg3)',borderRadius:8,padding:12}},
+          strs.map((s,i)=>React.createElement('div',{key:i,style:{fontSize:11,fontFamily:'monospace',padding:'2px 0',
+            borderBottom:'1px solid var(--border)',color:s.length>50?'var(--orange)':'var(--text2)'}},s))
+        )
+      );
+    }
+    if(tab==='entropy'){
+      const e=results.entropy||{};
+      const pct=(e.entropy||0)/8*100;
+      return React.createElement('div',null,
+        React.createElement('div',{className:'card',style:{margin:0,textAlign:'center'}},
+          React.createElement('div',{style:{fontSize:48,fontWeight:800,color:pct>80?'var(--red)':pct>50?'var(--orange)':'var(--green)'}},
+            (e.entropy||0).toFixed(3)
+          ),
+          React.createElement('div',{className:'text-muted text-sm',style:{marginBottom:10}},'Shannon Entropy (0–8 scale)'),
+          React.createElement(ProgressBar,{pct,color:pct>80?'red':pct>50?'':' green'}),
+          React.createElement('div',{className:'mt',style:{fontWeight:600}},e.interpretation||'—')
+        )
+      );
+    }
+    if(tab==='filesystem'){
+      const fs=results.filesystem||{};
+      if(fs.note)return React.createElement('div',{className:'alert alert-warn'},fs.note);
+      return React.createElement('div',null,
+        Object.entries(fs).map(([k,v])=>React.createElement(InfoRow,{key:k,k,v:String(v)}))
+      );
+    }
+    if(tab==='deleted'){
+      const del=results.deleted||[];
+      return del.length===0?React.createElement(EmptyState,{icon:'🗑',msg:'No deleted files found (pytsk3 required for full scan)'}):
+      React.createElement('div',{className:'table-wrap'},
+        React.createElement('table',null,
+          React.createElement('thead',null,React.createElement('tr',null,['Name','Size','Type','Status'].map(h=>React.createElement('th',{key:h},h)))),
+          React.createElement('tbody',null,
+            del.map((f,i)=>React.createElement('tr',{key:i},
+              React.createElement('td',null,f.name),
+              React.createElement('td',null,f.size+' B'),
+              React.createElement('td',null,f.type),
+              React.createElement('td',null,React.createElement(Badge,{label:'DELETED',type:'red'}))
+            ))
+          )
+        )
+      );
+    }
+  }
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,marginBottom:20}},'🗂 Disk Image Analysis'),
+    React.createElement(Section,{title:'Select Image',icon:'💿'},
+      React.createElement('div',{className:'flex',style:{gap:8}},
+        React.createElement('input',{className:'form-input',style:{flex:1},value:imgPath,onChange:e=>setImgPath(e.target.value),
+          placeholder:'Path to disk image (.dd, .raw, .img, .e01)'}),
+        React.createElement('button',{className:'btn btn-sm',onClick:()=>{
+          api('/api/utils/evidence/list').then(d=>{
+            const f=[...(d.captures||[]),...(d.images||[])][0];
+            if(f)setImgPath(f.path); else toast('No images found','warn');
+          });
+        }},'📁 Browse'),
+        React.createElement('button',{className:'btn btn-primary',onClick:run},'▶ Analyze')
+      )
+    ),
+    poll&&poll.status!=='unknown'&&React.createElement(Section,{title:'Progress',icon:'📊'},
+      React.createElement(ProgressBar,{pct:poll.progress,color:poll.status==='completed'?'green':''}),
+      React.createElement('p',{className:'text-xs text-muted',style:{marginTop:6}},poll.message)
+    ),
+    (results||(poll?.status==='completed'))&&React.createElement('div',null,
+      React.createElement('div',{className:'tabs'},tabs.map(t=>React.createElement('div',{key:t,className:`tab${tab===t?' active':''}`,onClick:()=>setTab(t)},tabLabels[t]))),
+      React.createElement('div',{className:'card'},renderTab())
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DATA RECOVERY
+// ══════════════════════════════════════════════════════════════════
+function DataRecovery(){
+  const [src,setSrc]=useState('');
+  const [mode,setMode]=useState('deep');
+  const [taskId,setTaskId]=useState(null);
+  const [results,setResults]=useState([]);
+  const [filter,setFilter]=useState('');
+  const poll=usePoll(taskId?`/api/recovery/progress/${taskId}`:null,1500,!!taskId);
+
+  useEffect(()=>{if(poll?.status==='completed'){setResults(poll.recovered||[]);toast(`✅ Recovered ${(poll.recovered||[]).length} files`,'success');}
+    if(poll?.status==='failed')toast('❌ '+poll.message,'error');},[poll?.status]);
+
+  async function start(){
+    if(!src.trim()){toast('Enter source path','warn');return;}
+    try{
+      const r=await api('/api/recovery/start',{method:'POST',body:JSON.stringify({source_path:src,scan_mode:mode})});
+      setTaskId(r.task_id);toast('🔍 Recovery scan started','info');
+    }catch(e){toast('❌ '+e.message,'error');}
+  }
+
+  const QUALITY_COLOR={good:'green',partial:'orange',corrupted:'red',overwritten:'grey'};
+  const filtered=results.filter(f=>!filter||f.name.toLowerCase().includes(filter.toLowerCase())||f.type.toLowerCase().includes(filter.toLowerCase()));
+  const typeGroups=results.reduce((a,f)=>{a[f.type]=(a[f.type]||0)+1;return a},{});
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,marginBottom:20}},'🗑 Data Recovery'),
+    React.createElement(Section,{title:'Recovery Settings',icon:'⚙️'},
+      React.createElement('div',{className:'grid2'},
+        React.createElement('div',{className:'form-group',style:{margin:0}},
+          React.createElement('label',{className:'form-label'},'Source (drive or image)'),
+          React.createElement('input',{className:'form-input',value:src,onChange:e=>setSrc(e.target.value),
+            placeholder:'e.g. /dev/sdb  or  C:\\evidence\\disk.dd'})
+        ),
+        React.createElement('div',{className:'form-group',style:{margin:0}},
+          React.createElement('label',{className:'form-label'},'Scan Mode'),
+          React.createElement('select',{className:'form-select',value:mode,onChange:e=>setMode(e.target.value)},
+            React.createElement('option',{value:'deep'},'Deep Scan (more results, slower)'),
+            React.createElement('option',{value:'quick'},'Quick Scan (faster, less thorough)')
+          )
+        )
+      ),
+      React.createElement('div',{className:'mt flex'},
+        React.createElement('button',{className:'btn btn-primary',onClick:start,
+          disabled:poll&&['starting','running'].includes(poll?.status)},
+          poll&&['starting','running'].includes(poll?.status)?
+            [React.createElement('span',{key:'s',className:'spin'},'⟳'),' Scanning...']:
+            '🔍 Start Recovery Scan'
+        )
+      )
+    ),
+    poll&&poll.status!=='unknown'&&React.createElement(Section,{title:`Scan Progress — ${poll.recovered_count||0} files found`,icon:'📊'},
+      React.createElement(ProgressBar,{pct:poll.progress,color:poll.status==='completed'?'green':''}),
+      React.createElement('p',{className:'text-xs text-muted',style:{marginTop:6}},poll.message)
+    ),
+    results.length>0&&React.createElement('div',null,
+      React.createElement('div',{className:'flex-wrap',style:{marginBottom:12}},
+        Object.entries(typeGroups).slice(0,8).map(([t,c])=>React.createElement('span',{key:t,className:'badge badge-purple'},t+': '+c))
+      ),
+      React.createElement(Section,{title:`Recovered Files (${filtered.length})`,icon:'📂',
+        action:React.createElement('input',{className:'form-input',style:{width:200},value:filter,
+          onChange:e=>setFilter(e.target.value),placeholder:'Filter by name/type...'})},
+        React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['Filename','Type','Size','Quality'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              filtered.slice(0,500).map((f,i)=>React.createElement('tr',{key:i},
+                React.createElement('td',null,React.createElement('span',{className:'text-mono text-sm'},f.name?.substring(0,50))),
+                React.createElement('td',null,React.createElement(Badge,{label:f.type||'?',type:'purple'})),
+                React.createElement('td',null,f.size_kb?f.size_kb+' KB':'—'),
+                React.createElement('td',null,React.createElement(Badge,{label:(f.quality||'?').toUpperCase(),type:QUALITY_COLOR[f.quality]||'grey'}))
+              ))
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PARTITION RECOVERY
+// ══════════════════════════════════════════════════════════════════
+function PartitionRecovery(){
+  const [src,setSrc]=useState('');
+  const [taskId,setTaskId]=useState(null);
+  const poll=usePoll(taskId?`/api/partition/progress/${taskId}`:null,1500,!!taskId);
+
+  async function scan(){
+    if(!src.trim()){toast('Enter source path','warn');return;}
+    try{
+      const r=await api('/api/partition/scan',{method:'POST',body:JSON.stringify({source_path:src})});
+      setTaskId(r.task_id);toast('🔍 Partition scan started','info');
+    }catch(e){toast('❌ '+e.message,'error');}
+  }
+  const parts=poll?.partitions||[];
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,marginBottom:20}},'🗂 Partition Recovery'),
+    React.createElement(Section,{title:'Scan for Lost Partitions',icon:'🔍'},
+      React.createElement('div',{className:'flex',style:{gap:8}},
+        React.createElement('input',{className:'form-input',style:{flex:1},value:src,onChange:e=>setSrc(e.target.value),
+          placeholder:'Source drive or disk image path'}),
+        React.createElement('button',{className:'btn btn-primary',onClick:scan,
+          disabled:poll&&['starting','running'].includes(poll?.status)},
+          poll&&['starting','running'].includes(poll?.status)?
+            [React.createElement('span',{key:'s',className:'spin'},'⟳'),' Scanning...']:'🔍 Scan Partitions'
+        )
+      )
+    ),
+    poll&&poll.status!=='unknown'&&React.createElement(Section,{title:'Scan Progress',icon:'📊'},
+      React.createElement(ProgressBar,{pct:poll.progress,color:poll.status==='completed'?'green':''}),
+      React.createElement('p',{className:'text-xs text-muted',style:{marginTop:6}},poll.message)
+    ),
+    poll?.status==='completed'&&React.createElement(Section,{title:`Found ${parts.length} Partition(s)`,icon:'🗂'},
+      parts.length===0?React.createElement(EmptyState,{icon:'🗂',msg:'No partitions detected. Try TestDisk for advanced recovery.'}):
+      React.createElement('div',null,
+        React.createElement('div',{className:'table-wrap'},
+          React.createElement('table',null,
+            React.createElement('thead',null,React.createElement('tr',null,
+              ['#','Filesystem','Start LBA','Size (MB)','Source','Recoverable'].map(h=>React.createElement('th',{key:h},h))
+            )),
+            React.createElement('tbody',null,
+              parts.map((p,i)=>React.createElement('tr',{key:i},
+                React.createElement('td',null,i+1),
+                React.createElement('td',null,React.createElement(Badge,{label:p.filesystem||'Unknown',type:'purple'})),
+                React.createElement('td',null,React.createElement('code',null,p.start_lba||p.start||'—')),
+                React.createElement('td',null,p.size_mb||'—'),
+                React.createElement('td',null,React.createElement('span',{className:'text-xs text-muted'},p.source||'scan')),
+                React.createElement('td',null,p.recoverable!==false?React.createElement(Badge,{label:'✅ YES',type:'green'}):React.createElement(Badge,{label:'?',type:'grey'}))
+              ))
+            )
+          )
+        ),
+        React.createElement('div',{className:'alert alert-info',style:{marginTop:12}},
+          '💡 Use TestDisk for full partition recovery: ',React.createElement('code',null,'testdisk /dev/sdX')
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UTILITIES (Hash / Hex / Strings)
+// ══════════════════════════════════════════════════════════════════
+function Utilities(){
+  const [tab,setTab]=useState('hash');
+  const [filePath,setFilePath]=useState('');
+  const [result,setResult]=useState(null);
+  const [hexOffset,setHexOffset]=useState(0);
+  const [loading,setLoading]=useState(false);
+
+  async function run(){
+    if(!filePath.trim()){toast('Enter file path','warn');return;}
+    setLoading(true);setResult(null);
+    try{
+      let r;
+      if(tab==='hash') r=await api('/api/utils/hash',{method:'POST',body:JSON.stringify({file_path:filePath})});
+      else if(tab==='hex') r=await api('/api/utils/hex',{method:'POST',body:JSON.stringify({file_path:filePath,offset:hexOffset,length:512})});
+      else if(tab==='strings') r=await api('/api/utils/strings',{method:'POST',body:JSON.stringify({file_path:filePath})});
+      else if(tab==='entropy') r=await api('/api/utils/entropy',{method:'POST',body:JSON.stringify({file_path:filePath})});
+      setResult(r);
+    }catch(e){toast('❌ '+e.message,'error');}
+    setLoading(false);
+  }
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,marginBottom:20}},'🔧 Forensic Utilities'),
+    React.createElement('div',{className:'tabs'},
+      ['hash','hex','strings','entropy'].map(t=>React.createElement('div',{key:t,
+        className:`tab${tab===t?' active':''}`,onClick:()=>{setTab(t);setResult(null);}},
+        {hash:'🔐 Hash Calculator',hex:'🔢 Hex Viewer',strings:'📝 Strings Extractor',entropy:'📊 Entropy Analyzer'}[t]
+      ))
+    ),
+    React.createElement('div',{className:'card'},
+      React.createElement('div',{className:'flex',style:{gap:8,marginBottom:12}},
+        React.createElement('input',{className:'form-input',style:{flex:1},value:filePath,onChange:e=>setFilePath(e.target.value),
+          placeholder:'Enter file path...'}),
+        tab==='hex'&&React.createElement('input',{className:'form-input',style:{width:120},value:hexOffset,
+          onChange:e=>setHexOffset(parseInt(e.target.value)||0),type:'number',placeholder:'Offset'}),
+        React.createElement('button',{className:'btn btn-primary',onClick:run,disabled:loading},
+          loading?[React.createElement('span',{key:'s',className:'spin'},'⟳'),' ']:'▶ Run'
+        )
+      ),
+      loading&&React.createElement(Loader),
+      result&&tab==='hash'&&React.createElement('div',null,
+        React.createElement(InfoRow,{k:'File Size',v:result.size_bytes?.toLocaleString()+' bytes'}),
+        React.createElement('div',{style:{marginTop:10}},
+          ['md5','sha1','sha256'].map(h=>React.createElement('div',{key:h,style:{marginBottom:8}},
+            React.createElement('div',{className:'flex',style:{marginBottom:4}},
+              React.createElement(Badge,{label:h.toUpperCase(),type:'purple'}),
+              React.createElement('span',{className:'text-xs text-muted'},h==='md5'?'128-bit':h==='sha1'?'160-bit':'256-bit')
+            ),
+            React.createElement('div',{className:'hash-display'},result[h])
+          ))
+        )
+      ),
+      result&&tab==='hex'&&React.createElement('div',{style:{background:'var(--bg3)',borderRadius:8,padding:12,maxHeight:400,overflowY:'auto'}},
+        result.lines?.map((l,i)=>React.createElement('div',{key:i,className:'hex-row'},
+          React.createElement('span',{className:'hex-offset'},l.offset),
+          React.createElement('span',{className:'hex-bytes'},l.hex),
+          React.createElement('span',{className:'hex-ascii'},l.ascii)
+        ))
+      ),
+      result&&tab==='strings'&&React.createElement('div',{style:{background:'var(--bg3)',borderRadius:8,padding:12,maxHeight:400,overflowY:'auto'}},
+        (result.strings||[]).map((s,i)=>React.createElement('div',{key:i,style:{fontSize:11,fontFamily:'monospace',
+          padding:'2px 0',borderBottom:'1px solid var(--border)',color:s.length>60?'var(--orange)':'var(--text2)'}},s))
+      ),
+      result&&tab==='entropy'&&React.createElement('div',{style:{textAlign:'center',padding:20}},
+        React.createElement('div',{style:{fontSize:52,fontWeight:800,color:
+          (result.entropy||0)>7?'var(--red)':(result.entropy||0)>5?'var(--orange)':'var(--green)'}},
+          (result.entropy||0).toFixed(4)
+        ),
+        React.createElement('div',{className:'text-muted',style:{marginBottom:12}},'Shannon Entropy'),
+        React.createElement(ProgressBar,{pct:(result.entropy||0)/8*100}),
+        React.createElement('div',{className:'mt',style:{fontWeight:600,fontSize:14}},result.interpretation)
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// REPORTS
+// ══════════════════════════════════════════════════════════════════
+function Reports(){
+  const [reports,setReports]=useState([]);
+  const [form,setForm]=useState({title:'Forensic Investigation Report',case_name:'',examiner_name:'',notes:'',fmt:'pdf'});
+  const [generating,setGenerating]=useState(false);
+
+  useEffect(()=>{api('/api/reports/list').then(setReports).catch(()=>{});},[]);
+
+  async function generate(){
+    if(!form.title.trim()){toast('Enter report title','warn');return;}
+    setGenerating(true);
+    try{
+      const r=await api('/api/reports/generate',{method:'POST',body:JSON.stringify({
+        title:form.title,case_name:form.case_name,
+        examiner:{name:form.examiner_name},notes:form.notes,fmt:form.fmt
+      })});
+      toast('📄 Report generated: '+r.filename,'success');
+      api('/api/reports/list').then(setReports);
+    }catch(e){toast('❌ '+e.message,'error');}
+    setGenerating(false);
+  }
+
+  return React.createElement('div',null,
+    React.createElement('h2',{style:{fontSize:18,fontWeight:800,marginBottom:20}},'📄 Reports'),
+    React.createElement('div',{className:'grid2'},
+      React.createElement(Section,{title:'Generate Report',icon:'📝'},
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Report Title'),
+          React.createElement('input',{className:'form-input',value:form.title,onChange:e=>setForm({...form,title:e.target.value})})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Case Name'),
+          React.createElement('input',{className:'form-input',value:form.case_name,onChange:e=>setForm({...form,case_name:e.target.value}),placeholder:'Case or investigation name'})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Examiner Name'),
+          React.createElement('input',{className:'form-input',value:form.examiner_name,onChange:e=>setForm({...form,examiner_name:e.target.value})})
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Format'),
+          React.createElement('select',{className:'form-select',value:form.fmt,onChange:e=>setForm({...form,fmt:e.target.value})},
+            React.createElement('option',{value:'pdf'},'PDF Report'),
+            React.createElement('option',{value:'html'},'HTML Report'),
+            React.createElement('option',{value:'json'},'JSON Export')
+          )
+        ),
+        React.createElement('div',{className:'form-group'},
+          React.createElement('label',{className:'form-label'},'Notes / Findings'),
+          React.createElement('textarea',{className:'form-input',value:form.notes,
+            onChange:e=>setForm({...form,notes:e.target.value}),placeholder:'Examiner notes and key findings...'})
+        ),
+        React.createElement('button',{className:'btn btn-primary',style:{width:'100%'},onClick:generate,disabled:generating},
+          generating?[React.createElement('span',{key:'s',className:'spin'},'⟳'),' Generating...']:'📄 Generate Report'
+        )
+      ),
+      React.createElement(Section,{title:'Generated Reports',icon:'📁',
+        action:React.createElement('button',{className:'btn btn-sm',onClick:()=>api('/api/reports/list').then(setReports)},'🔄 Refresh')},
+        reports.length===0?React.createElement(EmptyState,{icon:'📭',msg:'No reports yet'}):
+        reports.map((r,i)=>React.createElement('div',{key:i,className:'card',style:{marginBottom:8}},
+          React.createElement('div',{className:'flex-between'},
+            React.createElement('div',null,
+              React.createElement('div',{style:{fontWeight:600,fontSize:12}},r.name),
+              React.createElement('div',{className:'text-xs text-muted'},r.modified?.substring(0,16))
+            ),
+            React.createElement('div',{className:'flex'},
+              React.createElement(Badge,{label:r.format?.toUpperCase(),type:r.format==='pdf'?'red':r.format==='html'?'blue':'green'}),
+              React.createElement('a',{
+                href:`${API}/api/reports/download/${r.name}`,target:'_blank',
+                className:'btn btn-sm',style:{textDecoration:'none'}},'⬇ Download')
+            )
+          )
+        ))
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// APP SHELL
+// ══════════════════════════════════════════════════════════════════
+const NAV=[
+  {section:'Forensics'},
+  {id:'dashboard',icon:'📊',label:'Dashboard'},
+  {section:'Acquisition'},
+  {id:'ram-capture',icon:'🧠',label:'RAM Capture'},
+  {id:'disk-imaging',icon:'💿',label:'Disk Imaging'},
+  {section:'Analysis'},
+  {id:'ram-analysis',icon:'🔍',label:'RAM Analysis'},
+  {id:'disk-analysis',icon:'🗂',label:'Disk Analysis'},
+  {section:'Recovery'},
+  {id:'data-recovery',icon:'🗑',label:'Data Recovery'},
+  {id:'partition-recovery',icon:'📦',label:'Partition Recovery'},
+  {section:'Tools'},
+  {id:'utilities',icon:'🔧',label:'Utilities'},
+  {id:'reports',icon:'📄',label:'Reports'},
+];
+const PAGE_TITLES={
+  dashboard:'Dashboard','ram-capture':'RAM Capture','disk-imaging':'Disk Imaging',
+  'ram-analysis':'RAM Analysis','disk-analysis':'Disk Analysis',
+  'data-recovery':'Data Recovery','partition-recovery':'Partition Recovery',
+  'utilities':'Forensic Utilities','reports':'Reports'
+};
+
+function App(){
+  const [page,setPage]=useState('dashboard');
+  const [sysRam,setSysRam]=useState(null);
+
+  useEffect(()=>{
+    api('/api/system/info').then(d=>setSysRam(d?.ram_percent||0)).catch(()=>{});
+  },[]);
+
+  function renderPage(){
+    switch(page){
+      case 'dashboard':           return React.createElement(Dashboard,{setPage});
+      case 'ram-capture':         return React.createElement(RamCapture);
+      case 'ram-analysis':        return React.createElement(RamAnalysis);
+      case 'disk-imaging':        return React.createElement(DiskImaging);
+      case 'disk-analysis':       return React.createElement(DiskAnalysis);
+      case 'data-recovery':       return React.createElement(DataRecovery);
+      case 'partition-recovery':  return React.createElement(PartitionRecovery);
+      case 'utilities':           return React.createElement(Utilities);
+      case 'reports':             return React.createElement(Reports);
+      default: return React.createElement(Dashboard,{setPage});
+    }
+  }
+
+  return React.createElement('div',{style:{display:'flex',height:'100vh',width:'100%'}},
+    React.createElement(ToastContainer),
+    // ── Sidebar ─────────────────────────────────────────
+    React.createElement('div',{className:'sidebar'},
+      React.createElement('div',{className:'sidebar-logo'},
+        React.createElement('div',{className:'logo-icon'},'🔬'),
+        React.createElement('div',null,
+          React.createElement('div',{className:'logo-name'},'ForenCore'),
+          React.createElement('div',{className:'logo-ver'},'v1.0 • Forensic Workstation')
+        )
+      ),
+      React.createElement('nav',{style:{flex:1,overflowY:'auto'}},
+        NAV.map((n,i)=>
+          n.section
+            ?React.createElement('div',{key:i,className:'nav-section-label',style:{marginTop:i>0?8:0}},n.section)
+            :React.createElement('div',{key:n.id,
+                className:`nav-item${page===n.id?' active':''}`,
+                onClick:()=>setPage(n.id)},
+              React.createElement('span',{className:'nav-icon'},n.icon),
+              n.label,
+              n.id==='ram-capture'&&React.createElement('span',{key:'d',className:'nav-dot'})
+            )
+        )
+      ),
+      React.createElement('div',{className:'sidebar-footer'},
+        React.createElement('div',{className:'flex-between',style:{marginBottom:4}},
+          React.createElement('span',{className:'text-xs text-muted'},'RAM Usage'),
+          React.createElement('span',{className:'text-xs text-purple'},`${sysRam||0}%`)
+        ),
+        React.createElement('div',{className:'sys-bar'},
+          React.createElement('div',{className:'sys-fill',style:{width:`${sysRam||0}%`}})
+        ),
+        React.createElement('div',{className:'flex',style:{marginTop:8,gap:6}},
+          React.createElement('span',{className:'badge badge-green',style:{fontSize:9}},'● ONLINE'),
+          React.createElement('span',{className:'badge badge-grey',style:{fontSize:9}},'Offline Mode')
+        )
+      )
+    ),
+    // ── Main area ────────────────────────────────────────
+    React.createElement('div',{className:'main'},
+      React.createElement('div',{className:'topbar'},
+        React.createElement('div',{className:'topbar-icon'}, NAV.find(n=>n.id===page)?.icon||'🔬'),
+        React.createElement('div',{className:'topbar-title'},PAGE_TITLES[page]||page),
+        React.createElement('div',{className:'flex',style:{gap:8}},
+          React.createElement('span',{className:'badge badge-purple'},'ForenCore v1.0'),
+          React.createElement('span',{className:'badge badge-green'},'🔒 Offline')
+        )
+      ),
+      React.createElement('div',{className:'page-content'},renderPage())
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
